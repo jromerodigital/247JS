@@ -1,0 +1,6 @@
+{
+  "name": "Nuestra Historia de Amor",
+  "description": "Una webapp romántica interactiva con carta, música, contador de tiempo y galerías de fotos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

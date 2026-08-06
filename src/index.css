@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --color-romantic-bg: #FAF6F0;
+  --color-romantic-card: #FDF9F1;
+  --color-romantic-text: #4A3E3D;
+  --color-romantic-accent: #C27A7E;
+  --color-romantic-accent-hover: #A86569;
+}
+
+@layer utilities {
+  .envelope-fold {
+    clip-path: polygon(0 0, 50% 50%, 100% 0, 100% 100%, 0 100%);
+  }
+}
+
+/* Petal Animation */
+.petal {
+  position: fixed;
+  top: -10vh;
+  transform: translateY(0) rotate(0deg);
+  animation: fall linear forwards;
+  z-index: 50;
+  pointer-events: none;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(720deg);
+  }
+}
+
+/* Polaroids */
+.polaroid {
+  background: white;
+  padding: 12px 12px 40px 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transform: rotate(-2deg);
+  transition: transform 0.3s ease;
+}
+.polaroid:nth-child(even) {
+  transform: rotate(2deg);
+}
+.polaroid:hover {
+  transform: scale(1.02) rotate(0deg);
+  z-index: 10;
+}
+
