@@ -12,41 +12,29 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const letterRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const startDate = new Date('2026-07-24T00:00:00'); // 24 de Julio 2026
 
-  const sendCommand = (func: string, args: any[] = []) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func,
-          args,
-        }),
-        '*'
-      );
-    }
-  };
-
   const togglePlayPause = () => {
-    if (isPlaying) {
-      sendCommand('pauseVideo');
-      setIsPlaying(false);
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      }
     } else {
-      sendCommand('playVideo');
-      setIsPlaying(true);
+      setIsPlaying(!isPlaying);
     }
   };
 
   const toggleMute = () => {
-    if (isMuted) {
-      sendCommand('unMute');
-      setIsMuted(false);
-    } else {
-      sendCommand('mute');
-      setIsMuted(true);
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
     }
+    setIsMuted(!isMuted);
   };
 
   const handleAccept = () => {
@@ -93,14 +81,19 @@ export default function App() {
         </motion.div>
       )}
 
-      {/* Hidden Audio Player (Kept mounted after acceptance to preserve playback position) */}
+      {/* Audio Player */}
       {isAccepted && (
-        <iframe
-          ref={iframeRef}
-          src="https://www.youtube-nocookie.com/embed/9uB1Bl2SVBs?autoplay=1&enablejsapi=1&loop=1&playlist=9uB1Bl2SVBs"
-          title="Música de fondo"
-          allow="autoplay; encrypted-media"
-          className="fixed -top-[1000px] -left-[1000px] w-1 h-1 opacity-0 pointer-events-none border-0"
+        <audio
+          ref={audioRef}
+          src="./musica.mp3"
+          onError={(e) => {
+            // Fallback a audio romántico de CDN si no existe localmente
+            (e.target as HTMLAudioElement).src = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-piano-112199.mp3";
+          }}
+          autoPlay
+          loop
+          preload="auto"
+          className="hidden"
         />
       )}
 
