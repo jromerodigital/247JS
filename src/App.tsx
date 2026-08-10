@@ -117,7 +117,7 @@ export default function App() {
           
           <div className="polaroid mb-10 sm:mb-12 w-56 sm:w-64 md:w-72">
             <img 
-              src="/Fotos/Principal.jpeg" 
+              src="./Fotos/Principal.jpeg" 
               onError={(e) => {
                 // Fallback a la imagen de Unsplash si no se carga la foto local
                 (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1518193498966-2401dc291242?q=80&w=600&auto=format&fit=crop";
@@ -236,44 +236,44 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-12">
                   <PhotoGallery 
                     title="Por más viajes juntos" 
-                    coverImage="/Fotos/viajes.JPG"
+                    coverImage="./Fotos/viajes.JPG"
                     images={[
-                      "/Fotos/viajes.JPG",
-                      "/Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.09%20AM%20(1).jpeg",
-                      "/Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.09%20AM.jpeg",
-                      "/Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(1).jpeg",
-                      "/Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(2).jpeg",
-                      "/Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(3).jpeg",
-                      "/Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM.jpeg"
+                      "./Fotos/viajes.JPG",
+                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.09%20AM%20(1).jpeg",
+                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.09%20AM.jpeg",
+                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(1).jpeg",
+                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(2).jpeg",
+                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(3).jpeg",
+                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM.jpeg"
                     ]}
                   />
                   
                   <PhotoGallery 
                     title="Más salidas" 
-                    coverImage="/Fotos/salidas.jpeg"
+                    coverImage="./Fotos/salidas.jpeg"
                     images={[
-                      "/Fotos/salidas.jpeg",
-                      "/Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(1).jpeg",
-                      "/Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(2).jpeg",
-                      "/Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(3).jpeg",
-                      "/Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(4).jpeg",
-                      "/Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.54%20AM%20(1).jpeg",
-                      "/Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.54%20AM.jpeg"
+                      "./Fotos/salidas.jpeg",
+                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(1).jpeg",
+                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(2).jpeg",
+                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(3).jpeg",
+                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(4).jpeg",
+                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.54%20AM%20(1).jpeg",
+                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.54%20AM.jpeg"
                     ]}
                   />
                   
                   <PhotoGallery 
                     title="Te amo" 
-                    coverImage="/Fotos/Te%20amo.jpeg"
+                    coverImage="./Fotos/Te%20amo.jpeg"
                     images={[
-                      "/Fotos/Te%20amo.jpeg",
-                      "/Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.34%20AM.jpeg",
-                      "/Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(1).jpeg",
-                      "/Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(3).jpeg",
-                      "/Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(4).jpeg",
-                      "/Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM.jpeg",
-                      "/Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.36%20AM.jpeg",
-                      "/Fotos/Te%20amo/ia.JPG"
+                      "./Fotos/Te%20amo.jpeg",
+                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.34%20AM.jpeg",
+                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(1).jpeg",
+                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(3).jpeg",
+                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(4).jpeg",
+                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM.jpeg",
+                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.36%20AM.jpeg",
+                      "./Fotos/Te%20amo/ia.JPG"
                     ]}
                   />
                 </div>
