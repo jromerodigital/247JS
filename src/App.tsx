@@ -226,7 +226,7 @@ export default function App() {
               <div className="mt-12 sm:mt-16 w-full">
                 <h2 className="font-serif text-2xl sm:text-3xl text-center mb-8 sm:mb-12 italic">Nuestros Momentos</h2>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                   <PhotoGallery 
                     title="Por más viajes juntos" 
                     coverImage="./Fotos/viajes.JPG"
@@ -267,6 +267,20 @@ export default function App() {
                       "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM.jpeg",
                       "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.36%20AM.jpeg",
                       "./Fotos/Te%20amo/ia.JPG"
+                    ]}
+                  />
+
+                  <PhotoGallery 
+                    title="Más momentos" 
+                    coverImage="./Fotos/Momentos.jpg"
+                    images={[
+                      "./Fotos/Momentos.jpg",
+                      "./Fotos/Momentos/76941d02-e5e7-4f91-a2bc-8e4769bed643.jpg",
+                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.25%20AM%20(1).jpeg",
+                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.25%20AM.jpeg",
+                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.27%20AM.jpeg",
+                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.30%20AM.jpeg",
+                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.07.57%20AM.jpeg"
                     ]}
                   />
                 </div>
