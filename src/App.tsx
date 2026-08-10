@@ -86,10 +86,6 @@ export default function App() {
         <audio
           ref={audioRef}
           src="./musica.mp3"
-          onError={(e) => {
-            // Fallback a audio romántico de CDN si no existe localmente
-            (e.target as HTMLAudioElement).src = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-piano-112199.mp3";
-          }}
           autoPlay
           loop
           preload="auto"
@@ -169,16 +165,20 @@ export default function App() {
                 <div className="absolute inset-0 border border-[#E8DCC4] m-2 sm:m-3 rounded-xl opacity-50 pointer-events-none" />
                 
                 <div className="relative z-10 font-serif leading-relaxed text-base sm:text-lg space-y-4 sm:space-y-6">
-                  <p className="italic text-romantic-accent text-lg sm:text-xl">Para ti, Misu:</p>
+                  <p className="italic text-romantic-accent text-lg sm:text-xl">Hola Misu, mi amor.</p>
                   
                   <p>
-                    Hay momentos en los que me quedo atrapado en la luz de tu mirada, en los pequeños gestos que te hacen única y en esa sonrisa que me da paz. Me pierdo completamente en ti.
+                    Solo quiero robarte unos minutitos de tu día para decirte algo especial. Quiero desearte una hermosa semana y un lindo regreso al trabajo. Sé que venimos de un fin de semana lleno de muchas emociones en el que hemos pasado de todo, y justo por eso, hoy más que nunca, quiero recordarte que te amo.
                   </p>
                   
                   <p>
-                    Hemos vivido muchísimo en muy poco tiempo, pero sé que esto es solo el inicio de todo lo lindo que estamos construyendo juntos. Y aunque a veces suelo ser un poco torpe, hoy quiero decirte, más que nunca, que te amo; te prometo que encontraré mil y un formas de demostrártelo.
+                    Quiero seguir a tu lado para seguir haciendo crecer esto tan lindo que estamos construyendo. Mi amor por ti es indescriptible; es ese mismo amor que me inunda cuando me despierto a tu lado, me quedo viéndote dormir perdidamente enamorado, te doy besitos y te abrazo fuerte.
                   </p>
                   
+                  <p>
+                    Me pierdo en tu mirada, en tus gestos y en esa sonrisa tuya que me encanta. Hemos pasado por mucho en tan poco tiempo, y me emociona saber que esto es solo el comienzo. Perdóname si a veces soy un poco torpe; mi única intención es hacerte feliz. Te amo, y todos los días buscaré una nueva forma de demostrártelo.
+                  </p>
+
                   <p>
                     Sé que el camino no siempre es fácil, pero cuando el destino es compartir una vida infinita contigo, cualquier reto vale la pena.
                   </p>
