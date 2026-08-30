@@ -1,295 +1,89 @@
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Volume2, VolumeX, Play, Pause } from 'lucide-react';
-import { Petals } from './components/Petals';
-import { TimeCounter } from './components/TimeCounter';
-import { PhotoGallery } from './components/PhotoGallery';
+import { useState, useEffect } from 'react';
+import { Sparkles, Heart } from 'lucide-react';
+import { DedicationData } from './types/dedication';
+import { JORGE_SUSANA_DEDICATION } from './data/defaultDedication';
+import { DedicationViewer } from './pages/DedicationViewer';
+import { Builder } from './pages/Builder';
 
 export default function App() {
-  const [isLetterOpen, setIsLetterOpen] = useState(false);
-  const [isAccepted, setIsAccepted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const letterRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [view, setView] = useState<'home' | 'builder' | 'custom'>('home');
+  const [currentDedication, setCurrentDedication] = useState<DedicationData>(JORGE_SUSANA_DEDICATION);
 
-  const startDate = new Date('2026-07-24T00:00:00'); // 24 de Julio 2026
-
-  const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
+  // Hash-based routing check (#/crear or #/d/:slug)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/crear')) {
+        setView('builder');
+      } else if (hash.startsWith('#/d/')) {
+        const slug = hash.replace('#/d/', '');
+        const saved = localStorage.getItem(`dedication_${slug}`);
+        if (saved) {
+          try {
+            setCurrentDedication(JSON.parse(saved));
+            setView('custom');
+          } catch (e) {
+            setCurrentDedication(JORGE_SUSANA_DEDICATION);
+            setView('home');
+          }
+        } else {
+          // If not found in local storage, fallback to home
+          setView('home');
+        }
       } else {
-        audioRef.current.play().catch(() => {});
-        setIsPlaying(true);
+        setView('home');
       }
-    } else {
-      setIsPlaying(!isPlaying);
-    }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleSaveDedication = (newDedication: DedicationData) => {
+    // Save to localStorage for persistence
+    localStorage.setItem(`dedication_${newDedication.slug}`, JSON.stringify(newDedication));
+    setCurrentDedication(newDedication);
+    window.location.hash = `#/d/${newDedication.slug}`;
+    setView('custom');
   };
 
-  const toggleMute = () => {
-    if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
-    }
-    setIsMuted(!isMuted);
-  };
-
-  const handleAccept = () => {
-    setIsAccepted(true);
-    setIsPlaying(true);
-    setIsMuted(false);
-    setTimeout(() => {
-      contentRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 1000);
-  };
+  if (view === 'builder') {
+    return (
+      <Builder
+        onSave={handleSaveDedication}
+        onCancel={() => {
+          window.location.hash = '';
+          setView('home');
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans selection:bg-romantic-accent selection:text-white pb-24 overflow-x-hidden">
-      <Petals active={isAccepted} />
-      
-      {/* Audio Controls */}
-      {isAccepted && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed top-6 right-6 z-50 flex items-center gap-1.5 bg-white/70 backdrop-blur-md p-1.5 px-3 rounded-full shadow-md border border-romantic-text/10"
+    <div className="relative">
+      {/* Floating CTA button for Visitors to create their own dedication */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => {
+            window.location.hash = '#/crear';
+            setView('builder');
+          }}
+          className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-5 py-3 rounded-full font-bold shadow-2xl flex items-center gap-2 text-xs sm:text-sm border-2 border-white/80 transition-transform hover:scale-105 cursor-pointer"
         >
-          {/* Play / Pause */}
-          <button
-            onClick={togglePlayPause}
-            className="p-2 rounded-full hover:bg-romantic-accent/10 transition-colors text-romantic-accent cursor-pointer flex items-center justify-center"
-            aria-label={isPlaying ? "Pausar música" : "Reproducir música"}
-            title={isPlaying ? "Pausar música" : "Reproducir música"}
-          >
-            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-          </button>
+          <Sparkles size={16} /> Crear mi Dedicatoria
+        </button>
+      </div>
 
-          <div className="w-[1px] h-4 bg-romantic-text/20" />
-
-          {/* Volume / Mute */}
-          <button
-            onClick={toggleMute}
-            className="p-2 rounded-full hover:bg-romantic-accent/10 transition-colors text-romantic-accent cursor-pointer flex items-center justify-center"
-            aria-label={isMuted ? "Activar sonido" : "Silenciar"}
-            title={isMuted ? "Activar sonido" : "Silenciar"}
-          >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-        </motion.div>
-      )}
-
-      {/* Audio Player */}
-      {isAccepted && (
-        <audio
-          ref={audioRef}
-          src="./musica.mp3"
-          autoPlay
-          loop
-          preload="auto"
-          className="hidden"
-        />
-      )}
-
-      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col items-center">
-        
-        {/* Intro Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="w-full flex flex-col items-center"
-        >
-          <h1 className="font-serif text-2xl sm:text-3xl mb-6 sm:mb-8 italic text-romantic-text/80 text-center">Hay algo que quiero decirte...</h1>
-          
-          <div className="polaroid mb-10 sm:mb-12 w-56 sm:w-64 md:w-72">
-            <img 
-              src="./Fotos/Principal.jpeg" 
-              onError={(e) => {
-                // Fallback a la imagen de Unsplash si no se carga la foto local
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1518193498966-2401dc291242?q=80&w=600&auto=format&fit=crop";
-              }}
-              alt="Jorge y Susana" 
-              className="w-full aspect-square object-cover"
-            />
-            <div className="text-center mt-4 font-serif text-lg italic text-romantic-text/80">
-              Jorge y Susana
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Letter Section */}
-        <motion.div 
-          ref={letterRef}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="w-full max-w-md relative"
-        >
-          <AnimatePresence mode="wait">
-            {!isLetterOpen ? (
-              <motion.button
-                key="closed-letter"
-                onClick={() => setIsLetterOpen(true)}
-                exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                className="w-full max-w-sm mx-auto relative group cursor-pointer flex flex-col items-center"
-              >
-                {/* Envelope Body */}
-                <div className="relative w-full aspect-[3/2] bg-[#F5EEDC] rounded-lg shadow-lg overflow-visible border border-[#E8DCC4] transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-xl">
-                  {/* Envelope Flaps */}
-                  <div className="absolute inset-0 bg-[#F2EAC8] rounded-t-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 50% 55%)' }}></div>
-                  <div className="absolute inset-0 bg-[#FDF8E7] rounded-l-lg" style={{ clipPath: 'polygon(0 0, 50% 55%, 0 100%)' }}></div>
-                  <div className="absolute inset-0 bg-[#FDF8E7] rounded-r-lg" style={{ clipPath: 'polygon(100% 0, 50% 55%, 100% 100%)' }}></div>
-                  <div className="absolute inset-0 bg-[#FFFBF0] rounded-b-lg" style={{ clipPath: 'polygon(0 100%, 50% 55%, 100% 100%)' }}></div>
-                  
-                  {/* Wax Seal */}
-                  <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 bg-[#A32020] rounded-full shadow-[0_3px_10px_rgba(0,0,0,0.3)] flex items-center justify-center z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
-                    <Heart className="text-[#FDF8E7] w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
-                  </div>
-                </div>
-
-                <div className="mt-8 text-center text-romantic-accent/80 font-sans text-xs md:text-sm tracking-[0.2em] uppercase font-semibold">
-                  Descúbrelo - Hay algo dentro para ti
-                </div>
-              </motion.button>
-            ) : (
-              <motion.div
-                key="open-letter"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="w-full bg-romantic-card rounded-2xl p-6 sm:p-8 md:p-10 shadow-lg border border-[#F2E8D5] relative"
-              >
-                <div className="absolute inset-0 border border-[#E8DCC4] m-2 sm:m-3 rounded-xl opacity-50 pointer-events-none" />
-                
-                <div className="relative z-10 font-serif leading-relaxed text-base sm:text-lg space-y-4 sm:space-y-6">
-                  <p className="italic text-romantic-accent text-lg sm:text-xl">Hola Misu, mi amor.</p>
-                  
-                  <p>
-                    Solo quiero robarte unos minutitos de tu día para decirte algo especial. Quiero desearte una hermosa semana y un lindo regreso al trabajo. Sé que venimos de un fin de semana lleno de muchas emociones en el que hemos pasado de todo, y justo por eso, hoy más que nunca, quiero recordarte que te amo.
-                  </p>
-                  
-                  <p>
-                    Quiero seguir a tu lado para seguir haciendo crecer esto tan lindo que estamos construyendo. Mi amor por ti es indescriptible; es ese mismo amor que me inunda cuando me despierto a tu lado, me quedo viéndote dormir perdidamente enamorado, te doy besitos y te abrazo fuerte.
-                  </p>
-                  
-                  <p>
-                    Me pierdo en tu mirada, en tus gestos y en esa sonrisa tuya que me encanta. Hemos pasado por mucho en tan poco tiempo, y me emociona saber que esto es solo el comienzo. Perdóname si a veces soy un poco torpe; mi única intención es hacerte feliz. Te amo, y todos los días buscaré una nueva forma de demostrártelo.
-                  </p>
-
-                  <p>
-                    Sé que el camino no siempre es fácil, pero cuando el destino es compartir una vida infinita contigo, cualquier reto vale la pena.
-                  </p>
-
-                  <p>
-                    Por todo esto, solo quiero reafirmar cuánto te amo y pedirte que me respondas la siguiente pregunta, mi amor...
-                  </p>
-                  
-                  <div className="pt-6 sm:pt-8 text-center border-t border-romantic-text/10 mt-6 sm:mt-8">
-                    <h2 className="text-xl sm:text-2xl italic mb-6 sm:mb-8 px-2">¿Quieres seguir caminando conmigo de la mano?</h2>
-                    
-                    {!isAccepted ? (
-                      <button 
-                        onClick={handleAccept}
-                        className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-6 sm:px-8 py-3 rounded-full font-sans tracking-wide transition-all transform hover:scale-105 shadow-md flex items-center justify-center gap-2 mx-auto"
-                      >
-                        Sí, acepto <Heart size={18} fill="currentColor" />
-                      </button>
-                    ) : (
-                      <div className="text-romantic-accent font-serif italic text-lg sm:text-xl flex items-center justify-center gap-2">
-                        Sabía que dirías que sí <Heart size={20} fill="currentColor" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Revealed Content after Acceptance */}
-        <AnimatePresence>
-          {isAccepted && (
-            <motion.div 
-              ref={contentRef}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 1 }}
-              className="w-full mt-16"
-            >
-              <div className="w-full max-w-2xl mx-auto">
-                <TimeCounter startDate={startDate} />
-              </div>
-
-              <div className="mt-12 sm:mt-16 w-full">
-                <h2 className="font-serif text-2xl sm:text-3xl text-center mb-8 sm:mb-12 italic">Nuestros Momentos</h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                  <PhotoGallery 
-                    title="Por más viajes juntos" 
-                    coverImage="./Fotos/viajes.JPG"
-                    images={[
-                      "./Fotos/viajes.JPG",
-                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.09%20AM%20(1).jpeg",
-                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.09%20AM.jpeg",
-                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(1).jpeg",
-                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(2).jpeg",
-                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM%20(3).jpeg",
-                      "./Fotos/Viajes/WhatsApp%20Image%202026-08-06%20at%206.43.10%20AM.jpeg"
-                    ]}
-                  />
-                  
-                  <PhotoGallery 
-                    title="Más salidas" 
-                    coverImage="./Fotos/salidas.jpeg"
-                    images={[
-                      "./Fotos/salidas.jpeg",
-                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(1).jpeg",
-                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(2).jpeg",
-                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(3).jpeg",
-                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.53%20AM%20(4).jpeg",
-                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.54%20AM%20(1).jpeg",
-                      "./Fotos/Salidas/WhatsApp%20Image%202026-08-06%20at%206.52.54%20AM.jpeg"
-                    ]}
-                  />
-                  
-                  <PhotoGallery 
-                    title="Te amo" 
-                    coverImage="./Fotos/Te%20amo.jpeg"
-                    images={[
-                      "./Fotos/Te%20amo.jpeg",
-                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.34%20AM.jpeg",
-                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(1).jpeg",
-                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(3).jpeg",
-                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM%20(4).jpeg",
-                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.35%20AM.jpeg",
-                      "./Fotos/Te%20amo/WhatsApp%20Image%202026-08-06%20at%207.03.36%20AM.jpeg",
-                      "./Fotos/Te%20amo/ia.JPG"
-                    ]}
-                  />
-
-                  <PhotoGallery 
-                    title="Más momentos" 
-                    coverImage="./Fotos/Momentos.jpg"
-                    images={[
-                      "./Fotos/Momentos.jpg",
-                      "./Fotos/Momentos/76941d02-e5e7-4f91-a2bc-8e4769bed643.jpg",
-                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.25%20AM%20(1).jpeg",
-                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.25%20AM.jpeg",
-                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.27%20AM.jpeg",
-                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.05.30%20AM.jpeg",
-                      "./Fotos/Momentos/WhatsApp%20Image%202026-08-09%20at%207.07.57%20AM.jpeg"
-                    ]}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+      {/* Render Dedication Viewer */}
+      <DedicationViewer
+        data={currentDedication}
+        onBackToHome={view === 'custom' ? () => {
+          window.location.hash = '';
+          setCurrentDedication(JORGE_SUSANA_DEDICATION);
+          setView('home');
+        } : undefined}
+      />
     </div>
   );
 }
-
