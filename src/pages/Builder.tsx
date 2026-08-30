@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, Music, Image as ImageIcon, Upload, Check, ArrowRight, ArrowLeft, Trash2, QrCode, Play, Pause, ExternalLink } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { Heart, Music, Upload, Check, ArrowRight, ArrowLeft, Trash2, QrCode, Play, Pause, Edit3, Image as ImageIcon, Volume2 } from 'lucide-react';
 import { DedicationData, PhotoGalleryData } from '../types/dedication';
 import { PRELOADED_AUDIO_TRACKS } from '../data/audioTracks';
 import { enhanceRomanticLetter } from '../services/gemini';
@@ -22,7 +22,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
   const [startDate, setStartDate] = useState('2026-07-24');
   const [mainPhoto, setMainPhoto] = useState<string>('./Fotos/Principal.jpeg');
   
-  // Letter & AI State
+  // Letter State
   const [letterTitle, setLetterTitle] = useState('Para ti, Misu:');
   const [rawLetterInput, setRawLetterInput] = useState('');
   const [letterParagraphs, setLetterParagraphs] = useState<string[]>([
@@ -35,11 +35,41 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
   const [aiAttemptsLeft, setAiAttemptsLeft] = useState(3);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Audio State
+  // Audio State & Preview Player
   const [audioChoice, setAudioChoice] = useState<'preloaded' | 'custom'>('preloaded');
   const [selectedPreloadedId, setSelectedPreloadedId] = useState(PRELOADED_AUDIO_TRACKS[0].id);
   const [customAudioUrl, setCustomAudioUrl] = useState<string>('./musica.mp3');
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [previewTrackId, setPreviewTrackId] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Clean up audio preview when unmounting or changing step
+  useEffect(() => {
+    return () => {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+    };
+  }, [step]);
+
+  const handleTogglePreviewTrack = (trackId: string, trackUrl: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (previewTrackId === trackId) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+      setPreviewTrackId(null);
+    } else {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+      const audio = new Audio(trackUrl);
+      previewAudioRef.current = audio;
+      audio.play().catch(() => {});
+      setPreviewTrackId(trackId);
+      audio.onended = () => setPreviewTrackId(null);
+    }
+  };
 
   // Albums State (Galleries)
   const [galleries, setGalleries] = useState<PhotoGalleryData[]>([
@@ -63,9 +93,9 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     }
   ]);
 
-  // Slug & Final State
-  const [slug, setSlug] = useState('nuestro-amor');
+  const [editingTitleGalleryId, setEditingTitleGalleryId] = useState<string | null>(null);
   const [newGalleryTitle, setNewGalleryTitle] = useState('');
+  const [slug, setSlug] = useState('nuestro-amor');
 
   // Handle Main Photo Upload
   const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,22 +106,22 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
         const croppedBase64 = await cropAndCompressImage(file, 800);
         setMainPhoto(croppedBase64);
       } catch (err) {
-        alert('Error al procesar la imagen principal. Intenta con otra foto.');
+        alert('Error al procesar la imagen principal.');
       } finally {
         setIsProcessing(false);
       }
     }
   };
 
-  // AI Generation
+  // Letter Assistant
   const handleAiEnhance = async () => {
     if (aiAttemptsLeft <= 0) {
-      alert('Has agotado los 3 intentos de IA. Puedes editar el texto manualmente a tu gusto.');
+      alert('Has alcanzado el límite de sugerencias. Puedes editar el texto directamente.');
       return;
     }
 
     if (!rawLetterInput.trim()) {
-      alert('Escribe unas breves palabras o una idea básica de lo que sientes para que la IA la convierta en poema.');
+      alert('Escribe unas palabras o una idea de lo que deseas expresar.');
       return;
     }
 
@@ -102,7 +132,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
       setLetterParagraphs(paragraphs);
       setAiAttemptsLeft(prev => prev - 1);
     } catch (err) {
-      alert('Hubo un problema al conectar con la IA. Inténtalo de nuevo.');
+      alert('No se pudo procesar la solicitud en este momento.');
     } finally {
       setIsAiLoading(false);
     }
@@ -120,6 +150,11 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
       setCustomAudioUrl(url);
       setAudioChoice('custom');
     }
+  };
+
+  // Album Title Update
+  const handleUpdateAlbumTitle = (galleryId: string, updatedTitle: string) => {
+    setGalleries(prev => prev.map(g => g.id === galleryId ? { ...g, title: updatedTitle } : g));
   };
 
   // Add New Gallery
@@ -203,6 +238,10 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
 
   // Finish and Save
   const handleComplete = () => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+    }
+
     const activeAudioUrl = audioChoice === 'preloaded'
       ? (PRELOADED_AUDIO_TRACKS.find(t => t.id === selectedPreloadedId)?.url || PRELOADED_AUDIO_TRACKS[0].url)
       : customAudioUrl;
@@ -231,7 +270,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
   };
 
   return (
-    <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans p-4 sm:p-6 md:p-8 flex flex-col items-center">
+    <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans p-4 sm:p-6 md:p-8 flex flex-col items-center selection:bg-romantic-accent selection:text-white">
       {/* Top Bar Navigation */}
       <div className="w-full max-w-3xl flex items-center justify-between mb-8">
         <button
@@ -241,7 +280,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
           <ArrowLeft size={18} /> Volver al Inicio
         </button>
         <span className="font-serif italic text-lg sm:text-xl font-bold text-romantic-accent flex items-center gap-2">
-          <Heart size={20} fill="currentColor" /> Creador Romántico
+          <Heart size={20} fill="currentColor" /> Creador de Dedicatorias
         </span>
       </div>
 
@@ -251,7 +290,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
           <button
             key={num}
             onClick={() => setStep(num)}
-            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
+            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               step === num
                 ? 'bg-romantic-accent text-white shadow-md scale-110'
                 : step > num
@@ -312,7 +351,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Título de la Carta</label>
+              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Título Encabezado</label>
               <input
                 type="text"
                 value={title}
@@ -344,7 +383,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
 
             <div className="flex flex-col items-center gap-3">
               <label className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-6 py-3 rounded-full font-medium cursor-pointer shadow-md flex items-center gap-2 transition-transform hover:scale-105">
-                <Upload size={18} /> Subir Foto de Portada (Recorte 1x1)
+                <Upload size={18} /> Seleccionar Foto (Formato 1x1)
                 <input
                   type="file"
                   accept="image/*"
@@ -353,51 +392,52 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                 />
               </label>
               <p className="text-xs text-romantic-text/60">
-                💡 Se recortará y optimizará automáticamente a formato cuadrado (1x1).
+                💡 Se ajustará y optimizará automáticamente a formato cuadrado (1x1).
               </p>
             </div>
           </div>
         )}
 
-        {/* STEP 3: Letter & AI Assistant */}
+        {/* STEP 3: Letter & Assistant */}
         {step === 3 && (
           <div className="space-y-6">
             <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-4">
-              3. Mensaje Romántico & Asistente IA
+              3. Mensaje Romántico
             </h2>
 
-            <div className="bg-white/80 p-4 rounded-xl border border-romantic-accent/20">
+            {/* Natural & Human Inspiration Box */}
+            <div className="bg-white/90 p-5 rounded-2xl border border-romantic-accent/20 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-sm flex items-center gap-1.5 text-romantic-accent">
-                  <Sparkles size={16} /> Inspirador IA Poético
+                <span className="font-semibold text-sm flex items-center gap-1.5 text-romantic-accent font-serif italic text-base">
+                  ✨ Inspirador Poético
                 </span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-romantic-accent/10 text-romantic-accent">
-                  {aiAttemptsLeft} {aiAttemptsLeft === 1 ? 'intento restante' : 'intentos restantes'}
+                <span className="text-[11px] font-medium text-romantic-text/60">
+                  {aiAttemptsLeft} {aiAttemptsLeft === 1 ? 'sugerencia restante' : 'sugerencias restantes'}
                 </span>
               </div>
-              <p className="text-xs text-romantic-text/70 mb-3">
-                Escribe una idea simple o palabras clave de lo que sientes y la IA las convertirá en una carta poética inolvidable.
+              <p className="text-xs text-romantic-text/70 mb-3 leading-relaxed">
+                Escribe una idea clave de lo que sientes y el asistente redactará una versión fluida y conmovedora.
               </p>
               
               <textarea
                 value={rawLetterInput}
                 onChange={(e) => setRawLetterInput(e.target.value)}
-                placeholder="Ej. Quiero desearle buena semana, agradecerle por el lindo fin de semana juntos y recordarle que la amo muchísimo..."
+                placeholder="Ej. Desearle buena semana, agradecerle por el lindo fin de semana juntos y recordarle que la amo muchísimo..."
                 rows={3}
-                className="w-full p-3 rounded-lg border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent mb-3"
+                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent mb-3"
               />
 
               <button
                 onClick={handleAiEnhance}
                 disabled={isAiLoading || aiAttemptsLeft <= 0}
-                className="bg-romantic-accent text-white px-4 py-2 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 hover:bg-romantic-accent-hover transition-colors disabled:opacity-50 cursor-pointer"
+                className="bg-romantic-accent text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-2 hover:bg-romantic-accent-hover transition-all disabled:opacity-50 cursor-pointer"
               >
-                {isAiLoading ? '✨ Transformando con magia poética...' : '✨ Embellecer con IA'}
+                {isAiLoading ? '✍️ Redactando versión romántica...' : '✍️ Perfeccionar Mensaje'}
               </button>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Salida de la Carta (Párrafos)</label>
+              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Cuerpo de la Carta (Párrafos)</label>
               {letterParagraphs.map((paragraph, index) => (
                 <div key={index} className="flex gap-2 mb-3">
                   <textarea
@@ -407,12 +447,12 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                       updated[index] = e.target.value;
                       setLetterParagraphs(updated);
                     }}
-                    rows={2}
-                    className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-sm font-serif italic focus:outline-none focus:border-romantic-accent"
+                    rows={3}
+                    className="w-full p-3.5 rounded-xl border border-romantic-text/20 bg-white text-sm font-serif leading-relaxed focus:outline-none focus:border-romantic-accent"
                   />
                   <button
                     onClick={() => setLetterParagraphs(letterParagraphs.filter((_, idx) => idx !== index))}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors self-start"
                     title="Eliminar párrafo"
                   >
                     <Trash2 size={16} />
@@ -430,7 +470,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
           </div>
         )}
 
-        {/* STEP 4: Music Selection */}
+        {/* STEP 4: Music Selection with Pre-Listen Preview */}
         {step === 4 && (
           <div className="space-y-6">
             <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-6">
@@ -462,30 +502,53 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
 
             {audioChoice === 'preloaded' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {PRELOADED_AUDIO_TRACKS.map((track) => (
-                  <div
-                    key={track.id}
-                    onClick={() => setSelectedPreloadedId(track.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                      selectedPreloadedId === track.id
-                        ? 'border-romantic-accent bg-romantic-accent/10 shadow-md'
-                        : 'border-romantic-text/10 bg-white hover:border-romantic-accent/50'
-                    }`}
-                  >
-                    <div>
-                      <h4 className="font-semibold text-sm text-romantic-text">{track.name}</h4>
-                      <p className="text-xs text-romantic-text/60">{track.artist}</p>
+                {PRELOADED_AUDIO_TRACKS.map((track) => {
+                  const isSelected = selectedPreloadedId === track.id;
+                  const isPreviewing = previewTrackId === track.id;
+
+                  return (
+                    <div
+                      key={track.id}
+                      onClick={() => setSelectedPreloadedId(track.id)}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                        isSelected
+                          ? 'border-romantic-accent bg-romantic-accent/10 shadow-md'
+                          : 'border-romantic-text/10 bg-white hover:border-romantic-accent/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Play/Pause Pre-Listen Button */}
+                        <button
+                          onClick={(e) => handleTogglePreviewTrack(track.id, track.url, e)}
+                          className={`p-2.5 rounded-full transition-transform hover:scale-110 cursor-pointer ${
+                            isPreviewing
+                              ? 'bg-romantic-accent text-white shadow'
+                              : 'bg-romantic-accent/10 text-romantic-accent hover:bg-romantic-accent/20'
+                          }`}
+                          title={isPreviewing ? "Pausar pre-escucha" : "Escuchar muestra"}
+                        >
+                          {isPreviewing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                        </button>
+
+                        <div>
+                          <h4 className="font-semibold text-sm text-romantic-text">{track.name}</h4>
+                          <p className="text-xs text-romantic-text/60">{track.artist}</p>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <span className="text-xs font-bold text-romantic-accent flex items-center gap-1 bg-white/80 px-2.5 py-1 rounded-full border border-romantic-accent/20">
+                          <Check size={14} /> Seleccionada
+                        </span>
+                      )}
                     </div>
-                    {selectedPreloadedId === track.id && (
-                      <Check className="text-romantic-accent" size={20} />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center p-6 border-2 border-dashed border-romantic-accent/30 rounded-2xl bg-white/50">
                 <Music className="w-12 h-12 text-romantic-accent mx-auto mb-3" />
-                <h4 className="font-semibold text-sm mb-2">Selecciona un archivo MP3 de tu computadora</h4>
+                <h4 className="font-semibold text-sm mb-2">Selecciona un archivo MP3 de tu dispositivo</h4>
                 <label className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-5 py-2.5 rounded-full text-xs font-semibold cursor-pointer shadow inline-block transition-transform hover:scale-105">
                   Seleccionar MP3
                   <input
@@ -495,17 +558,30 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                     className="hidden"
                   />
                 </label>
+                
                 {customAudioUrl && (
-                  <p className="text-xs text-green-600 font-semibold mt-3">
-                    ✓ Archivo listo para reproducir en tu dedicatoria.
-                  </p>
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    <p className="text-xs text-green-600 font-semibold">
+                      ✓ Archivo cargado correctamente.
+                    </p>
+                    <button
+                      onClick={(e) => handleTogglePreviewTrack('custom_preview', customAudioUrl, e)}
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-romantic-accent/10 text-romantic-accent text-xs font-semibold cursor-pointer hover:bg-romantic-accent/20"
+                    >
+                      {previewTrackId === 'custom_preview' ? (
+                        <> <Pause size={14} fill="currentColor" /> Pausar Pre-escucha </>
+                      ) : (
+                        <> <Play size={14} fill="currentColor" /> Escuchar MP3 Subido </>
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
             )}
           </div>
         )}
 
-        {/* STEP 5: Albums / Galleries */}
+        {/* STEP 5: Albums / Galleries with Editable Titles */}
         {step === 5 && (
           <div className="space-y-6">
             <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-6">
@@ -518,7 +594,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                 type="text"
                 value={newGalleryTitle}
                 onChange={(e) => setNewGalleryTitle(e.target.value)}
-                placeholder="Nombre del nuevo álbum (ej. Viajes juntos, Salidas...)"
+                placeholder="Título del nuevo álbum (ej. Viajes juntos, Salidas...)"
                 className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
               />
               <button
@@ -532,11 +608,42 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
             {/* Albums List */}
             <div className="space-y-6">
               {galleries.map((gallery) => (
-                <div key={gallery.id} className="p-4 bg-white/80 rounded-2xl border border-romantic-text/10 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-serif italic font-bold text-lg text-romantic-accent">
-                      {gallery.title}
-                    </h3>
+                <div key={gallery.id} className="p-5 bg-white/90 rounded-2xl border border-romantic-text/10 shadow-sm space-y-4">
+                  
+                  {/* Editable Title Header */}
+                  <div className="flex items-center justify-between border-b border-romantic-text/10 pb-3">
+                    {editingTitleGalleryId === gallery.id ? (
+                      <div className="flex items-center gap-2 w-full max-w-sm">
+                        <input
+                          type="text"
+                          value={gallery.title}
+                          onChange={(e) => handleUpdateAlbumTitle(gallery.id, e.target.value)}
+                          onBlur={() => setEditingTitleGalleryId(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setEditingTitleGalleryId(null);
+                          }}
+                          autoFocus
+                          className="w-full p-1.5 px-3 rounded-lg border border-romantic-accent text-base font-serif italic text-romantic-accent font-bold focus:outline-none bg-white"
+                        />
+                        <button
+                          onClick={() => setEditingTitleGalleryId(null)}
+                          className="text-xs bg-romantic-accent text-white px-3 py-1.5 rounded-lg font-semibold"
+                        >
+                          Guardar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group cursor-pointer" title="Editar título" onClick={() => setEditingTitleGalleryId(gallery.id)}>
+                        <h3 className="font-serif italic font-bold text-lg text-romantic-accent">
+                          {gallery.title}
+                        </h3>
+                        <Edit3 size={16} className="text-romantic-text/40 group-hover:text-romantic-accent transition-colors" />
+                        <span className="text-xs text-romantic-text/50 font-normal ml-2">
+                          ({gallery.images.length}/5 fotos)
+                        </span>
+                      </div>
+                    )}
+
                     <button
                       onClick={() => setGalleries(galleries.filter(g => g.id !== gallery.id))}
                       className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
@@ -546,32 +653,39 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                   </div>
 
                   {/* Photo Thumbnails */}
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                     {gallery.images.map((imgUrl, idx) => (
-                      <div key={idx} className="relative group rounded-lg overflow-hidden border border-gray-200 aspect-square">
+                      <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-square shadow-sm">
                         <img src={imgUrl} alt={`Foto ${idx}`} className="w-full h-full object-cover" />
+                        
+                        {gallery.coverImage === imgUrl && (
+                          <span className="absolute top-1 left-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+                            Portada
+                          </span>
+                        )}
+
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleSetCoverPhoto(gallery.id, imgUrl)}
-                            className={`p-1 rounded-full ${gallery.coverImage === imgUrl ? 'bg-green-500 text-white' : 'bg-white text-gray-800'}`}
-                            title="Marcar como Portada"
+                            className={`p-1.5 rounded-full ${gallery.coverImage === imgUrl ? 'bg-green-500 text-white' : 'bg-white text-gray-800'}`}
+                            title="Establecer como Foto de Portada"
                           >
-                            <Check size={12} />
+                            <Check size={14} />
                           </button>
                           <button
                             onClick={() => handleDeletePhoto(gallery.id, idx)}
-                            className="p-1 rounded-full bg-red-500 text-white"
+                            className="p-1.5 rounded-full bg-red-500 text-white"
                             title="Eliminar foto"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
                     ))}
 
                     {gallery.images.length < 5 && (
-                      <label className="border-2 border-dashed border-romantic-accent/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-romantic-accent/5 aspect-square text-romantic-accent text-xs font-semibold p-2 text-center">
-                        <Upload size={16} className="mb-1" /> + Foto
+                      <label className="border-2 border-dashed border-romantic-accent/40 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-romantic-accent/5 aspect-square text-romantic-accent text-xs font-semibold p-2 text-center transition-colors">
+                        <Upload size={18} className="mb-1" /> + Agregar Foto
                         <input
                           type="file"
                           accept="image/*"
@@ -582,7 +696,7 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                     )}
                   </div>
                   <p className="text-[11px] text-romantic-text/60 italic">
-                    * Muestra máxima 5 fotos por álbum. Fotos en formato 1x1.
+                    💡 Haz clic en el icono del lápiz junto al nombre del álbum para editar su título. Límite de 5 fotos por álbum (1x1).
                   </p>
                 </div>
               ))}
