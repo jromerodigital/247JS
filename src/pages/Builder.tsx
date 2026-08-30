@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Heart, Music, Upload, Check, ArrowRight, ArrowLeft, Trash2, QrCode, Play, Pause, Edit3, Image as ImageIcon, Volume2 } from 'lucide-react';
-import { DedicationData, PhotoGalleryData } from '../types/dedication';
+import { DedicationData, PhotoGalleryData, ScratchCouponData } from '../types/dedication';
 import { PRELOADED_AUDIO_TRACKS } from '../data/audioTracks';
 import { enhanceRomanticLetter } from '../services/gemini';
 import { cropAndCompressImage } from '../utils/imageCropper';
+import { saveDedicationApi } from '../services/api';
 
 interface BuilderProps {
   onSave: (dedication: DedicationData) => void;
@@ -236,8 +237,13 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     }));
   };
 
+  const [coupons, setCoupons] = useState<ScratchCouponData[]>([
+    { id: 'c1', title: 'Cupón Romántico #1', rewardText: 'Vale por una cena romántica a la luz de las velas 🕯️' },
+    { id: 'c2', title: 'Cupón Romántico #2', rewardText: 'Vale por un masaje relajante y mimos 💆‍♀️' }
+  ]);
+
   // Finish and Save
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
     }
@@ -263,9 +269,11 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
       audioUrl: activeAudioUrl,
       audioType: audioChoice,
       galleries,
+      coupons,
       createdAt: Date.now()
     };
 
+    await saveDedicationApi(finalData);
     onSave(finalData);
   };
 

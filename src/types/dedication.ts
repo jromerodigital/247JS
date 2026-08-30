@@ -1,3 +1,16 @@
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface ScratchCouponData {
+  id: string;
+  title: string;
+  rewardText: string;
+  isRevealed?: boolean;
+}
+
 export interface PhotoItem {
   id: string;
   url: string;
@@ -33,5 +46,7 @@ export interface DedicationData {
   audioUrl: string;
   audioType: 'preloaded' | 'custom';
   galleries: PhotoGalleryData[];
+  coupons?: ScratchCouponData[];
+  userEmail?: string;
   createdAt: number;
 }

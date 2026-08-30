@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Volume2, VolumeX, Play, Pause, ArrowLeft } from 'lucide-react';
+import { Heart, Volume2, VolumeX, Play, Pause, ArrowLeft, Printer, Sparkles, Gift } from 'lucide-react';
 import { Petals } from '../components/Petals';
 import { TimeCounter } from '../components/TimeCounter';
 import { PhotoGallery } from '../components/PhotoGallery';
+import { ScratchCoupon } from '../components/ScratchCoupon';
+import { PrintableCardModal } from '../components/PrintableCardModal';
 import { DedicationData } from '../types/dedication';
 
 interface DedicationViewerProps {
@@ -16,6 +18,7 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
   const [isAccepted, setIsAccepted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const letterRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -57,17 +60,24 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
     <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans selection:bg-romantic-accent selection:text-white pb-24 overflow-x-hidden relative">
       <Petals active={isAccepted} />
 
-      {/* Optional Top Back Bar */}
-      {onBackToHome && (
-        <div className="absolute top-6 left-6 z-50">
+      {/* Top Bar Navigation */}
+      <div className="absolute top-6 left-6 z-40 flex items-center gap-2">
+        {onBackToHome && (
           <button
             onClick={onBackToHome}
-            className="flex items-center gap-1.5 bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-romantic-accent border border-romantic-text/10 shadow-sm hover:bg-white transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-romantic-accent border border-romantic-text/10 shadow-sm hover:bg-white transition-colors cursor-pointer"
           >
-            <ArrowLeft size={14} /> Volver al Inicio
+            <ArrowLeft size={14} /> Inicio
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={() => setIsPrintModalOpen(true)}
+          className="flex items-center gap-1.5 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-romantic-accent border border-romantic-text/10 shadow-sm hover:bg-white transition-colors cursor-pointer"
+          title="Ver tarjeta imprimible con Código QR"
+        >
+          <Printer size={14} /> Tarjeta QR
+        </button>
+      </div>
 
       {/* Audio Floating Controls */}
       {isAccepted && (
@@ -110,7 +120,7 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
         />
       )}
 
-      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col items-center">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-16 flex flex-col items-center">
         
         {/* Intro Section */}
         <motion.div 
@@ -229,6 +239,21 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
                 <TimeCounter startDate={startDate} />
               </div>
 
+              {/* Scratch Coupons Section */}
+              {data.coupons && data.coupons.length > 0 && (
+                <div className="mt-12 sm:mt-16 w-full">
+                  <h2 className="font-serif text-2xl sm:text-3xl text-center mb-8 italic flex items-center justify-center gap-2">
+                    <Gift className="text-romantic-accent" size={24} /> Cupones de Regalo
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    {data.coupons.map((coupon) => (
+                      <ScratchCoupon key={coupon.id} coupon={coupon} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Photo Galleries */}
               {data.galleries && data.galleries.length > 0 && (
                 <div className="mt-12 sm:mt-16 w-full">
                   <h2 className="font-serif text-2xl sm:text-3xl text-center mb-8 sm:mb-12 italic">Nuestros Momentos</h2>
@@ -248,7 +273,25 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Footer Viral Growth Loop Link */}
+        <footer className="mt-24 text-center border-t border-romantic-text/10 pt-8 pb-4 w-full">
+          <a
+            href="#/crear"
+            className="inline-flex items-center gap-1.5 text-xs text-romantic-text/60 hover:text-romantic-accent transition-colors font-medium cursor-pointer"
+          >
+            <Sparkles size={14} className="text-romantic-accent" />
+            ¿Quieres sorprender a tu persona favorita? <span className="underline font-bold text-romantic-accent">Crea tu carta en 2 minutos</span>
+          </a>
+        </footer>
       </main>
+
+      {/* Printable Card Modal */}
+      <PrintableCardModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        dedication={data}
+      />
     </div>
   );
 };
