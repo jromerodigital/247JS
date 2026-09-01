@@ -56,9 +56,27 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
   const [selectedPreloadedId, setSelectedPreloadedId] = useState(PRELOADED_AUDIO_TRACKS[0].id);
   const [customAudioUrl, setCustomAudioUrl] = useState<string>(initialData?.audioUrl || '');
   const [youtubeUrl, setYoutubeUrl] = useState<string>(initialData?.audioType === 'youtube' ? initialData.audioUrl : '');
+  const [youtubeTitle, setYoutubeTitle] = useState<string | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [previewTrackId, setPreviewTrackId] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fetch YouTube Song Title via oEmbed API
+  useEffect(() => {
+    const match = youtubeUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+    const ytId = match && match[2].length === 11 ? match[2] : null;
+
+    if (ytId) {
+      fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytId}&format=json`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.title) setYoutubeTitle(data.title);
+        })
+        .catch(() => setYoutubeTitle(null));
+    } else {
+      setYoutubeTitle(null);
+    }
+  }, [youtubeUrl]);
 
   // WhatsApp state for coupons claim
   const [whatsappNumber, setWhatsappNumber] = useState<string>(initialData?.whatsapp || '');
@@ -692,8 +710,8 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
                             <span className="text-[10px] font-bold text-romantic-accent uppercase tracking-wider block">
                               Canción de YouTube identificada
                             </span>
-                            <p className="text-xs font-bold text-romantic-text truncate mt-0.5">
-                              Vídeo ID: {ytId}
+                            <p className="text-xs font-bold text-romantic-text truncate mt-0.5" title={youtubeTitle || `Vídeo ID: ${ytId}`}>
+                              🎵 {youtubeTitle || `Vídeo ID: ${ytId}`}
                             </p>
                             <p className="text-[10px] text-green-600 font-semibold mt-0.5">
                               ✓ Lista para sonar de fondo en tu dedicatoria
