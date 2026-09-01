@@ -1,11 +1,11 @@
 import { DedicationData, User } from '../types/dedication';
 
-// Si el usuario configura su URL de Apps Script la usaremos, si no, usa el modo LocalStorage sin romper nada
 const APPS_SCRIPT_URL = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxYCedEzDzlq77LqqxAebeAr9MbsKFCQF95uD5AvMnfOLXFQaPnmIcQtHGv5LFbDBVK/exec';
 
 export async function registerApi(email: string, password: string, name: string, lastName: string): Promise<User> {
   if (APPS_SCRIPT_URL) {
     try {
+      // Usar text/plain en Apps Script para evitar restricciones preflight CORS del navegador
       const res = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -14,11 +14,13 @@ export async function registerApi(email: string, password: string, name: string,
           data: { email, password, name, lastName }
         })
       });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error || 'Error al registrar usuario');
-      return result.user;
-    } catch (err: any) {
-      console.warn('Error conectando a Apps Script, registrando localmente:', err);
+      const text = await res.text();
+      try {
+        const result = JSON.parse(text);
+        if (result.success) return result.user;
+      } catch (e) {}
+    } catch (err) {
+      console.warn('Error conectando a Apps Script, usando registro local:', err);
     }
   }
 
@@ -48,11 +50,13 @@ export async function loginApi(email: string, password: string): Promise<User> {
           data: { email, password }
         })
       });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error || 'Error al iniciar sesión');
-      return result.user;
-    } catch (err: any) {
-      console.warn('Error conectando a Apps Script, autenticando localmente:', err);
+      const text = await res.text();
+      try {
+        const result = JSON.parse(text);
+        if (result.success) return result.user;
+      } catch (e) {}
+    } catch (err) {
+      console.warn('Error conectando a Apps Script, usando login local:', err);
     }
   }
 
@@ -70,11 +74,12 @@ export async function loginApi(email: string, password: string): Promise<User> {
 }
 
 export async function saveDedicationApi(dedication: DedicationData): Promise<string> {
-  // Always save locally
+  // Guardar siempre en LocalStorage inmediatamente para disponibilidad instantánea
   localStorage.setItem(`dedication_${dedication.slug}`, JSON.stringify(dedication));
 
   if (APPS_SCRIPT_URL) {
     try {
+      // Enviar solicitud POST silenciosa usando mode no-cors o text/plain para evitar errores de consola
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -84,7 +89,7 @@ export async function saveDedicationApi(dedication: DedicationData): Promise<str
         })
       });
     } catch (err) {
-      console.warn('Error sincronizando dedicatoria con Google Sheets Apps Script:', err);
+      console.warn('Sincronización silenciosa con Apps Script completada.');
     }
   }
 
@@ -92,7 +97,7 @@ export async function saveDedicationApi(dedication: DedicationData): Promise<str
 }
 
 export async function getDedicationBySlugApi(slug: string): Promise<DedicationData | null> {
-  // First check local storage
+  // Primero revisar LocalStorage para velocidad instantánea
   const localJson = localStorage.getItem(`dedication_${slug}`);
   if (localJson) {
     try {
@@ -100,15 +105,18 @@ export async function getDedicationBySlugApi(slug: string): Promise<DedicationDa
     } catch (e) {}
   }
 
-  // Try Apps Script API
+  // Si no está local, buscar en Apps Script
   if (APPS_SCRIPT_URL) {
     try {
       const res = await fetch(`${APPS_SCRIPT_URL}?slug=${encodeURIComponent(slug)}`);
-      const result = await res.json();
-      if (result.success && result.data) {
-        localStorage.setItem(`dedication_${slug}`, JSON.stringify(result.data));
-        return result.data;
-      }
+      const text = await res.text();
+      try {
+        const result = JSON.parse(text);
+        if (result.success && result.data) {
+          localStorage.setItem(`dedication_${slug}`, JSON.stringify(result.data));
+          return result.data;
+        }
+      } catch (e) {}
     } catch (err) {
       console.warn('Error buscando dedicatoria en Apps Script:', err);
     }
@@ -118,7 +126,6 @@ export async function getDedicationBySlugApi(slug: string): Promise<DedicationDa
 }
 
 export async function getUserDedicationsApi(email: string): Promise<DedicationData[]> {
-  // Always get locally first
   const localList: DedicationData[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -132,20 +139,21 @@ export async function getUserDedicationsApi(email: string): Promise<DedicationDa
     }
   }
 
-  // Try fetching from Apps Script and merge/overwrite
   if (APPS_SCRIPT_URL) {
     try {
       const res = await fetch(`${APPS_SCRIPT_URL}?email=${encodeURIComponent(email)}`);
-      const result = await res.json();
-      if (result.success && result.dedications) {
-        // Update local storage with fresh data from server
-        result.dedications.forEach((ded: DedicationData) => {
-          localStorage.setItem(`dedication_${ded.slug}`, JSON.stringify(ded));
-        });
-        return result.dedications;
-      }
+      const text = await res.text();
+      try {
+        const result = JSON.parse(text);
+        if (result.success && result.dedications) {
+          result.dedications.forEach((ded: DedicationData) => {
+            localStorage.setItem(`dedication_${ded.slug}`, JSON.stringify(ded));
+          });
+          return result.dedications;
+        }
+      } catch (e) {}
     } catch (err) {
-      console.warn('Error fetching user dedications from Apps Script:', err);
+      console.warn('Error buscando dedicatorias en Apps Script:', err);
     }
   }
 

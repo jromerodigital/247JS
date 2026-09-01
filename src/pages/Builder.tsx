@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Heart, Music, Upload, Check, ArrowRight, ArrowLeft, Trash2, QrCode, Play, Pause, Edit3, Image as ImageIcon, Volume2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Heart, Music, Upload, Check, ArrowRight, ArrowLeft, Trash2, QrCode, Play, Pause, Edit3, Image as ImageIcon, Sparkles, HelpCircle, Eye, Calendar, Gift, Star, X } from 'lucide-react';
 import { DedicationData, PhotoGalleryData, ScratchCouponData } from '../types/dedication';
 import { PRELOADED_AUDIO_TRACKS } from '../data/audioTracks';
 import { enhanceRomanticLetter } from '../services/gemini';
@@ -8,42 +8,98 @@ import { cropAndCompressImage } from '../utils/imageCropper';
 import { saveDedicationApi } from '../services/api';
 
 interface BuilderProps {
+  initialData?: DedicationData;
   onSave: (dedication: DedicationData) => void;
   onCancel: () => void;
 }
 
-export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
+export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel }) => {
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Form State
-  const [partnerName, setPartnerName] = useState('Susana');
-  const [senderName, setSenderName] = useState('Jorge');
-  const [title, setTitle] = useState('Hay algo que quiero decirte...');
-  const [startDate, setStartDate] = useState('2026-07-24');
-  const [mainPhoto, setMainPhoto] = useState<string>('./Fotos/Principal.jpeg');
+  // Form State (Neutral defaults with placeholders)
+  const [partnerName, setPartnerName] = useState(initialData?.partnerName || '');
+  const [senderName, setSenderName] = useState(initialData?.senderName || '');
+  const [title, setTitle] = useState(initialData?.title || 'Un detalle especial para ti');
+  const [startDate, setStartDate] = useState(initialData?.startDate || new Date().toISOString().split('T')[0]);
   
+  // High quality HD romantic default photo
+  const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1518193498966-2401dc291242?q=80&w=800&auto=format&fit=crop';
+  const [mainPhoto, setMainPhoto] = useState<string>(initialData?.mainPhoto || DEFAULT_PHOTO);
+
+  // Title AI Suggestions
+  const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
+  const TITLE_SUGGESTIONS = [
+    'Un detalle especial para ti',
+    'Por más momentos juntos',
+    'Nuestra historia de amor',
+    'Para el amor de mi vida',
+  ];
+
   // Letter State
-  const [letterTitle, setLetterTitle] = useState('Para ti, Misu:');
+  const [letterTitle, setLetterTitle] = useState(initialData?.letterTitle || '');
   const [rawLetterInput, setRawLetterInput] = useState('');
-  const [letterParagraphs, setLetterParagraphs] = useState<string[]>([
-    'Solo quiero robarte unos minutitos de tu día para decirte algo especial. Quiero desearte una hermosa semana y un lindo regreso al trabajo.',
-    'Quiero seguir a tu lado para seguir haciendo crecer esto tan lindo que estamos construyendo. Mi amor por ti es indescriptible.',
-    'Me pierdo en tu mirada, en tus gestos y en esa sonrisa tuya que me encanta.',
-    'Sé que el camino no siempre es fácil, pero cuando el destino es compartir una vida infinita contigo, cualquier reto vale la pena.',
-    'Por todo esto, solo quiero reafirmar cuánto te amo y pedirte que me respondas la siguiente pregunta, mi amor...'
-  ]);
+  const [letterParagraphs, setLetterParagraphs] = useState<string[]>(
+    initialData?.letterContent || [
+      'Solo quiero robarte unos minutitos de tu día para decirte algo muy especial.',
+      'Quiero recordar cuánto significas para mí y lo feliz que me hace compartir este camino a tu lado.',
+      'Me pierdo en tu mirada, en tu sonrisa y en todo lo que estamos construyendo juntos.',
+      'Te amo infinitamente y todos los días buscaré una nueva forma de demostrártelo.'
+    ]
+  );
   const [aiAttemptsLeft, setAiAttemptsLeft] = useState(3);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isPreviewLetterOpen, setIsPreviewLetterOpen] = useState(false);
 
-  // Audio State & Preview Player
-  const [audioChoice, setAudioChoice] = useState<'preloaded' | 'custom'>('preloaded');
+  // Audio State
+  const [audioChoice, setAudioChoice] = useState<'preloaded' | 'custom'>(initialData?.audioType || 'preloaded');
   const [selectedPreloadedId, setSelectedPreloadedId] = useState(PRELOADED_AUDIO_TRACKS[0].id);
-  const [customAudioUrl, setCustomAudioUrl] = useState<string>('./musica.mp3');
+  const [customAudioUrl, setCustomAudioUrl] = useState<string>(initialData?.audioUrl || '');
+  const [audioError, setAudioError] = useState<string | null>(null);
   const [previewTrackId, setPreviewTrackId] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Clean up audio preview when unmounting or changing step
+  // Albums State (Max 4 albums, max 5 photos each)
+  const [galleries, setGalleries] = useState<PhotoGalleryData[]>(
+    initialData?.galleries || [
+      {
+        id: 'g1',
+        title: 'Nuestros Recuerdos',
+        coverImage: DEFAULT_PHOTO,
+        images: [DEFAULT_PHOTO]
+      }
+    ]
+  );
+  const [editingTitleGalleryId, setEditingTitleGalleryId] = useState<string | null>(null);
+  const [newGalleryTitle, setNewGalleryTitle] = useState('');
+
+  // Coupons State (Optional Toggle)
+  const [includeCoupons, setIncludeCoupons] = useState<boolean>(
+    initialData?.coupons ? initialData.coupons.length > 0 : true
+  );
+  const [coupons, setCoupons] = useState<ScratchCouponData[]>(
+    initialData?.coupons || [
+      { id: 'c1', title: 'Cupón Romántico #1', rewardText: 'Vale por una cena romántica a la luz de las velas 🕯️' },
+      { id: 'c2', title: 'Cupón Romántico #2', rewardText: 'Vale por un masaje relajante y mimos 💆‍♀️' }
+    ]
+  );
+  const [showCouponHelp, setShowCouponHelp] = useState(false);
+
+  // Auto-generated Slug
+  const [slug, setSlug] = useState(initialData?.slug || '');
+
+  // Auto-generate slug when names or date change if slug is not manually set
+  useEffect(() => {
+    if (!initialData?.slug && (partnerName || senderName)) {
+      const cleanPartner = partnerName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanSender = senderName.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanDate = startDate.replace(/-/g, '');
+      const auto = [cleanPartner, cleanSender, cleanDate].filter(Boolean).join('-');
+      setSlug(auto || `amor-${Date.now()}`);
+    }
+  }, [partnerName, senderName, startDate]);
+
+  // Clean up audio preview when unmounting
   useEffect(() => {
     return () => {
       if (previewAudioRef.current) {
@@ -56,14 +112,10 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
   const handleTogglePreviewTrack = (trackId: string, trackUrl: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (previewTrackId === trackId) {
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-      }
+      if (previewAudioRef.current) previewAudioRef.current.pause();
       setPreviewTrackId(null);
     } else {
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-      }
+      if (previewAudioRef.current) previewAudioRef.current.pause();
       const audio = new Audio(trackUrl);
       previewAudioRef.current = audio;
       audio.play().catch(() => {});
@@ -72,135 +124,95 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     }
   };
 
-  // Albums State (Galleries)
-  const [galleries, setGalleries] = useState<PhotoGalleryData[]>([
-    {
-      id: 'g1',
-      title: 'Por más viajes juntos',
-      coverImage: './Fotos/viajes.JPG',
-      images: ['./Fotos/viajes.JPG']
-    },
-    {
-      id: 'g2',
-      title: 'Más salidas',
-      coverImage: './Fotos/salidas.jpeg',
-      images: ['./Fotos/salidas.jpeg']
-    },
-    {
-      id: 'g3',
-      title: 'Te amo',
-      coverImage: './Fotos/Te%20amo.jpeg',
-      images: ['./Fotos/Te%20amo.jpeg']
-    }
-  ]);
-
-  const [editingTitleGalleryId, setEditingTitleGalleryId] = useState<string | null>(null);
-  const [newGalleryTitle, setNewGalleryTitle] = useState('');
-  const [slug, setSlug] = useState('nuestro-amor');
-
-  // Handle Main Photo Upload
+  // Main Photo Upload
   const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsProcessing(true);
-      try {
-        const croppedBase64 = await cropAndCompressImage(file, 800);
-        setMainPhoto(croppedBase64);
-      } catch (err) {
-        alert('Error al procesar la imagen principal.');
-      } finally {
-        setIsProcessing(false);
-      }
+    if (!file) return;
+    setIsProcessing(true);
+    try {
+      const croppedBase64 = await cropAndCompressImage(file, 800, 800);
+      setMainPhoto(croppedBase64);
+    } catch (err) {
+      alert('Error al procesar la foto principal.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // Letter Assistant
-  const handleAiEnhance = async () => {
-    if (aiAttemptsLeft <= 0) {
-      alert('Has alcanzado el límite de sugerencias. Puedes editar el texto directamente.');
+  // Custom Song Upload with 8 MB limit
+  const handleCustomAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAudioError(null);
+
+    const maxSizeBytes = 8 * 1024 * 1024; // 8 MB
+    if (file.size > maxSizeBytes) {
+      setAudioError('La canción supera el límite máximo de 8 MB. Por favor elige un archivo más liviano.');
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setCustomAudioUrl(event.target.result as string);
+        setAudioChoice('custom');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // AI Romantic Letter Enhance
+  const handleEnhanceLetterWithAI = async () => {
+    if (aiAttemptsLeft <= 0) return;
     if (!rawLetterInput.trim()) {
-      alert('Escribe unas palabras o una idea de lo que deseas expresar.');
+      alert('Escribe una breve idea para que el asistente poético pueda inspirarse.');
       return;
     }
-
     setIsAiLoading(true);
     try {
       const resultText = await enhanceRomanticLetter(rawLetterInput);
-      const paragraphs = resultText.split('\n\n').filter(p => p.trim().length > 0);
+      const paragraphs = resultText.split('\n\n').filter(p => p.trim());
       setLetterParagraphs(paragraphs);
       setAiAttemptsLeft(prev => prev - 1);
-    } catch (err) {
-      alert('No se pudo procesar la solicitud en este momento.');
+    } catch (err: any) {
+      alert(err.message || 'Error al inspirar la carta.');
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  // Handle MP3 Upload
-  const handleCustomAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 15 * 1024 * 1024) {
-        alert('El archivo MP3 excede el límite recomendado de 15MB.');
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      setCustomAudioUrl(url);
-      setAudioChoice('custom');
-    }
-  };
-
-  // Album Title Update
-  const handleUpdateAlbumTitle = (galleryId: string, updatedTitle: string) => {
-    setGalleries(prev => prev.map(g => g.id === galleryId ? { ...g, title: updatedTitle } : g));
-  };
-
-  // Add New Gallery
+  // Album Management (Max 4 albums, max 5 photos each)
   const handleAddGallery = () => {
     if (galleries.length >= 4) {
-      alert('El límite máximo es de 4 álbumes de fotos.');
+      alert('Puedes crear un máximo de 4 álbumes de recuerdos.');
       return;
     }
-    if (!newGalleryTitle.trim()) {
-      alert('Escribe un título para el nuevo álbum.');
-      return;
-    }
-
-    const newGallery: PhotoGalleryData = {
-      id: `g_${Date.now()}`,
-      title: newGalleryTitle.trim(),
-      coverImage: 'https://images.unsplash.com/photo-1518193498966-2401dc291242?q=80&w=600&auto=format&fit=crop',
-      images: ['https://images.unsplash.com/photo-1518193498966-2401dc291242?q=80&w=600&auto=format&fit=crop']
-    };
-
-    setGalleries([...galleries, newGallery]);
-    setNewGalleryTitle('');
+    const newId = `g_${Date.now()}`;
+    setGalleries(prev => [
+      ...prev,
+      { id: newId, title: `Álbum ${prev.length + 1}`, coverImage: '', images: [] }
+    ]);
   };
 
-  // Add Photo to Gallery
   const handleAddPhotoToGallery = async (galleryId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const gallery = galleries.find(g => g.id === galleryId);
-    if (gallery && gallery.images.length >= 5) {
+    const targetGallery = galleries.find(g => g.id === galleryId);
+    if (targetGallery && targetGallery.images.length >= 5) {
       alert('Cada álbum permite un máximo de 5 fotos.');
       return;
     }
 
     setIsProcessing(true);
     try {
-      const croppedBase64 = await cropAndCompressImage(file, 800);
+      const croppedBase64 = await cropAndCompressImage(file, 800, 800);
       setGalleries(prev => prev.map(g => {
         if (g.id === galleryId) {
           const updatedImages = [...g.images, croppedBase64];
           return {
             ...g,
             images: updatedImages,
-            coverImage: g.images.length === 0 ? croppedBase64 : g.coverImage
+            coverImage: g.coverImage || croppedBase64
           };
         }
         return g;
@@ -212,7 +224,6 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     }
   };
 
-  // Delete Photo from Gallery
   const handleDeletePhoto = (galleryId: string, photoIndex: number) => {
     setGalleries(prev => prev.map(g => {
       if (g.id === galleryId) {
@@ -227,7 +238,6 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     }));
   };
 
-  // Set Cover Photo
   const handleSetCoverPhoto = (galleryId: string, photoUrl: string) => {
     setGalleries(prev => prev.map(g => {
       if (g.id === galleryId) {
@@ -237,16 +247,17 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     }));
   };
 
-  const [coupons, setCoupons] = useState<ScratchCouponData[]>([
-    { id: 'c1', title: 'Cupón Romántico #1', rewardText: 'Vale por una cena romántica a la luz de las velas 🕯️' },
-    { id: 'c2', title: 'Cupón Romántico #2', rewardText: 'Vale por un masaje relajante y mimos 💆‍♀️' }
-  ]);
+  const handleDeleteGallery = (galleryId: string) => {
+    if (galleries.length <= 1) {
+      alert('Debes mantener al menos 1 álbum.');
+      return;
+    }
+    setGalleries(prev => prev.filter(g => g.id !== galleryId));
+  };
 
   // Finish and Save
   const handleComplete = async () => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-    }
+    if (previewAudioRef.current) previewAudioRef.current.pause();
 
     const activeAudioUrl = audioChoice === 'preloaded'
       ? (PRELOADED_AUDIO_TRACKS.find(t => t.id === selectedPreloadedId)?.url || PRELOADED_AUDIO_TRACKS[0].url)
@@ -255,22 +266,22 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
     const finalSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
 
     const finalData: DedicationData = {
-      id: `ded_${Date.now()}`,
+      id: initialData?.id || `ded_${Date.now()}`,
       slug: finalSlug || `amor-${Date.now()}`,
-      partnerName,
-      senderName,
-      title,
+      partnerName: partnerName.trim() || 'Mi Amor',
+      senderName: senderName.trim() || 'Yo',
+      title: title.trim() || 'Hay algo que quiero decirte...',
       startDate,
       mainPhoto,
-      letterTitle,
+      letterTitle: letterTitle.trim() || `Para ti, ${partnerName || 'mi amor'}:`,
       letterContent: letterParagraphs,
       question: '¿Quieres seguir caminando conmigo de la mano?',
       answerYesText: 'Sabía que dirías que sí',
       audioUrl: activeAudioUrl,
       audioType: audioChoice,
       galleries,
-      coupons,
-      createdAt: Date.now()
+      coupons: includeCoupons ? coupons : [],
+      createdAt: initialData?.createdAt || Date.now()
     };
 
     await saveDedicationApi(finalData);
@@ -278,422 +289,435 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
   };
 
   return (
-    <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans p-4 sm:p-6 md:p-8 flex flex-col items-center selection:bg-romantic-accent selection:text-white">
-      {/* Top Bar Navigation */}
-      <div className="w-full max-w-3xl flex items-center justify-between mb-8">
-        <button
-          onClick={onCancel}
-          className="flex items-center gap-2 text-romantic-accent hover:underline font-medium text-sm sm:text-base cursor-pointer"
-        >
-          <ArrowLeft size={18} /> Volver al Inicio
-        </button>
-        <span className="font-serif italic text-lg sm:text-xl font-bold text-romantic-accent flex items-center gap-2">
-          <Heart size={20} fill="currentColor" /> Creador de Dedicatorias
-        </span>
-      </div>
-
-      {/* Progress Stepper */}
-      <div className="w-full max-w-3xl bg-white/60 backdrop-blur-md rounded-full p-2 mb-8 shadow-sm border border-romantic-text/10 flex items-center justify-between text-xs sm:text-sm font-semibold">
-        {[1, 2, 3, 4, 5, 6].map((num) => (
+    <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans selection:bg-romantic-accent selection:text-white pb-20">
+      {/* Top Header */}
+      <header className="bg-romantic-card border-b border-romantic-text/10 px-4 py-4 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
-            key={num}
-            onClick={() => setStep(num)}
-            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              step === num
-                ? 'bg-romantic-accent text-white shadow-md scale-110'
-                : step > num
-                ? 'bg-romantic-accent/20 text-romantic-accent'
-                : 'bg-gray-100 text-gray-400'
-            }`}
+            onClick={onCancel}
+            className="flex items-center gap-1 text-xs font-semibold text-romantic-text/60 hover:text-romantic-text transition-colors cursor-pointer"
           >
-            {step > num ? <Check size={16} /> : num}
+            <ArrowLeft size={16} /> Volver al Panel
           </button>
-        ))}
+          <div className="flex items-center gap-2">
+            <Heart size={16} className="text-romantic-accent" fill="currentColor" />
+            <span className="font-serif italic font-bold text-romantic-accent text-sm">Diseñando mi Detalle</span>
+          </div>
+          <span className="text-xs font-bold text-romantic-accent bg-romantic-accent/10 px-3 py-1 rounded-full">
+            Paso {step} de 6
+          </span>
+        </div>
+      </header>
+
+      {/* Progress Bar */}
+      <div className="w-full bg-romantic-text/10 h-1">
+        <div
+          className="bg-romantic-accent h-full transition-all duration-300"
+          style={{ width: `${(step / 6) * 100}%` }}
+        />
       </div>
 
-      {/* Form Container */}
-      <motion.div
-        key={step}
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-3xl bg-romantic-card rounded-2xl p-6 sm:p-8 shadow-xl border border-[#F2E8D5]"
-      >
-        {/* STEP 1: General Info */}
+      <main className="max-w-2xl mx-auto px-4 pt-8">
+
+        {/* ─── PASO 1: PROTAGONISTAS ─── */}
         {step === 1 && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-6">
-              1. Los Protagonistas de la Historia
-            </h2>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Nombre de tu Pareja (Persona Favorita)</label>
-              <input
-                type="text"
-                value={partnerName}
-                onChange={(e) => setPartnerName(e.target.value)}
-                placeholder="Ej. Susana, Misu..."
-                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white focus:outline-none focus:border-romantic-accent"
-              />
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-bold mb-1">1. Protagonistas del Detalle</h2>
+              <p className="text-xs text-romantic-text/60">Ingresa los nombres y la fecha de su historia juntos.</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Tu Nombre (Remitente)</label>
-              <input
-                type="text"
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
-                placeholder="Ej. Jorge"
-                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white focus:outline-none focus:border-romantic-accent"
-              />
-            </div>
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1 text-romantic-text/80">
+                    ¿Para quién es este detalle? *
+                  </label>
+                  <input
+                    type="text"
+                    value={partnerName}
+                    onChange={(e) => setPartnerName(e.target.value)}
+                    placeholder="Ej: Lucía"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Fecha Especial / Aniversario</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white focus:outline-none focus:border-romantic-accent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Título Encabezado</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Hay algo que quiero decirte..."
-                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white focus:outline-none focus:border-romantic-accent"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: Main Photo */}
-        {step === 2 && (
-          <div className="space-y-6 text-center">
-            <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic mb-4">
-              2. Foto Principal de la Polaroid
-            </h2>
-
-            <div className="polaroid mx-auto w-64 sm:w-72 shadow-lg">
-              <img
-                src={mainPhoto}
-                alt="Foto principal"
-                className="w-full aspect-square object-cover rounded-md"
-              />
-              <div className="text-center mt-3 font-serif text-lg italic text-romantic-text/80">
-                {senderName} y {partnerName}
+                <div>
+                  <label className="block text-xs font-bold mb-1 text-romantic-text/80">
+                    ¿De parte de quién? *
+                  </label>
+                  <input
+                    type="text"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="Ej: Juan"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col items-center gap-3">
-              <label className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-6 py-3 rounded-full font-medium cursor-pointer shadow-md flex items-center gap-2 transition-transform hover:scale-105">
-                <Upload size={18} /> Seleccionar Foto (Formato 1x1)
+              {/* Title with AI Suggestion Button */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-romantic-text/80">
+                    Título principal de la portada
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowTitleSuggestions(!showTitleSuggestions)}
+                    className="text-[11px] font-bold text-romantic-accent hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles size={12} /> Sugerencias de Título
+                  </button>
+                </div>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleMainPhotoUpload}
-                  className="hidden"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ej: Un detalle especial para ti..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent font-serif italic"
                 />
-              </label>
-              <p className="text-xs text-romantic-text/60">
-                💡 Se ajustará y optimizará automáticamente a formato cuadrado (1x1).
-              </p>
+
+                {showTitleSuggestions && (
+                  <div className="mt-2 p-3 bg-romantic-bg rounded-xl border border-romantic-accent/20 space-y-1.5">
+                    <p className="text-[10px] font-bold text-romantic-text/60 uppercase tracking-wider mb-1">
+                      Elige una sugerencia para inspirarte:
+                    </p>
+                    {TITLE_SUGGESTIONS.map((sug, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setTitle(sug);
+                          setShowTitleSuggestions(false);
+                        }}
+                        className="block w-full text-left text-xs text-romantic-accent hover:bg-romantic-accent/10 px-2.5 py-1.5 rounded-lg font-serif italic transition-colors"
+                      >
+                        " {sug} "
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Styled Special Date Input */}
+              <div>
+                <label className="block text-xs font-bold mb-1 text-romantic-text/80 flex items-center gap-1.5">
+                  <Calendar size={14} className="text-romantic-accent" /> Fecha especial o aniversario *
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setStartDate(new Date().toISOString().split('T')[0])}
+                    className="px-3 py-2 bg-romantic-accent/10 text-romantic-accent rounded-xl text-xs font-bold hover:bg-romantic-accent/20 transition-colors flex-shrink-0 cursor-pointer"
+                  >
+                    Hoy
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* STEP 3: Letter & Assistant */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-4">
-              3. Mensaje Romántico
-            </h2>
+        {/* ─── PASO 2: FOTO PRINCIPAL ─── */}
+        {step === 2 && (
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-bold mb-1">2. Foto Principal (Polaroid)</h2>
+              <p className="text-xs text-romantic-text/60">Esta imagen aparecerá en el centro de la portada estilo Polaroid.</p>
+            </div>
 
-            {/* Natural & Human Inspiration Box */}
-            <div className="bg-white/90 p-5 rounded-2xl border border-romantic-accent/20 shadow-sm">
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm text-center">
+              <div className="polaroid w-56 mx-auto mb-6">
+                <img src={mainPhoto} alt="Foto Principal" className="w-full aspect-square object-cover rounded" />
+                <p className="text-center mt-3 font-serif italic text-sm text-romantic-text/80">
+                  {senderName || 'Nombre'} y {partnerName || 'Pareja'}
+                </p>
+              </div>
+
+              <label className="inline-flex items-center gap-2 bg-romantic-accent hover:bg-romantic-accent-hover text-white px-5 py-2.5 rounded-full font-bold shadow text-xs cursor-pointer transition-transform hover:scale-105">
+                <Upload size={14} /> Cambiar Foto Principal (1x1)
+                <input type="file" accept="image/*" onChange={handleMainPhotoUpload} className="hidden" />
+              </label>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ─── PASO 3: MENSAJE ROMÁNTICO Y ASISTENTE POÉTICO ─── */}
+        {step === 3 && (
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-bold mb-1">3. Mensaje Romántico y Carta</h2>
+              <p className="text-xs text-romantic-text/60">Redacta el mensaje o usa nuestro Asistente Poético.</p>
+            </div>
+
+            {/* Asistente Poético */}
+            <div className="bg-gradient-to-r from-[#FFFBF5] to-[#FFF5E8] rounded-2xl p-5 border border-romantic-accent/30 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-sm flex items-center gap-1.5 text-romantic-accent font-serif italic text-base">
-                  ✨ Inspirador Poético
+                <span className="font-serif italic font-bold text-sm text-romantic-accent flex items-center gap-1.5">
+                  <Sparkles size={16} /> Asistente de Redacción Romántica
                 </span>
-                <span className="text-[11px] font-medium text-romantic-text/60">
-                  {aiAttemptsLeft} {aiAttemptsLeft === 1 ? 'sugerencia restante' : 'sugerencias restantes'}
+                <span className="text-[10px] font-bold text-romantic-text/50">
+                  {aiAttemptsLeft} intentos disponibles
                 </span>
               </div>
-              <p className="text-xs text-romantic-text/70 mb-3 leading-relaxed">
-                Escribe una idea clave de lo que sientes y el asistente redactará una versión fluida y conmovedora.
+              <p className="text-xs text-romantic-text/70 mb-3">
+                Escribe una idea sencilla (ej: *"Quiero desearle una hermosa semana y recordarle que la amo"*). La IA redactará una carta poética y emotiva.
               </p>
-              
               <textarea
                 value={rawLetterInput}
                 onChange={(e) => setRawLetterInput(e.target.value)}
-                placeholder="Ej. Desearle buena semana, agradecerle por el lindo fin de semana juntos y recordarle que la amo muchísimo..."
-                rows={3}
-                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent mb-3"
+                placeholder="Escribe tu idea corta aquí..."
+                rows={2}
+                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-xs focus:outline-none focus:border-romantic-accent mb-3"
               />
-
               <button
-                onClick={handleAiEnhance}
+                type="button"
+                onClick={handleEnhanceLetterWithAI}
                 disabled={isAiLoading || aiAttemptsLeft <= 0}
-                className="bg-romantic-accent text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-2 hover:bg-romantic-accent-hover transition-all disabled:opacity-50 cursor-pointer"
+                className="bg-romantic-accent text-white px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-romantic-accent-hover flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                {isAiLoading ? '✍️ Redactando versión romántica...' : '✍️ Perfeccionar Mensaje'}
+                {isAiLoading ? 'Perfeccionando...' : '✍️ Perfeccionar Mensaje con IA'}
               </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">Cuerpo de la Carta (Párrafos)</label>
+            {/* Carta Editor */}
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-romantic-text/80">Título de la carta</label>
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewLetterOpen(true)}
+                  className="text-xs font-bold text-romantic-accent hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Eye size={14} /> Previsualizar en la Carta
+                </button>
+              </div>
+              <input
+                type="text"
+                value={letterTitle}
+                onChange={(e) => setLetterTitle(e.target.value)}
+                placeholder={`Ej: Para ti, ${partnerName || 'mi amor'}:`}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm font-serif italic focus:outline-none focus:border-romantic-accent"
+              />
+
+              <label className="block text-xs font-bold text-romantic-text/80">Párrafos de la carta</label>
               {letterParagraphs.map((paragraph, index) => (
-                <div key={index} className="flex gap-2 mb-3">
+                <div key={index} className="relative">
                   <textarea
                     value={paragraph}
                     onChange={(e) => {
-                      const updated = [...letterParagraphs];
-                      updated[index] = e.target.value;
-                      setLetterParagraphs(updated);
+                      const newP = [...letterParagraphs];
+                      newP[index] = e.target.value;
+                      setLetterParagraphs(newP);
                     }}
-                    rows={3}
-                    className="w-full p-3.5 rounded-xl border border-romantic-text/20 bg-white text-sm font-serif leading-relaxed focus:outline-none focus:border-romantic-accent"
+                    rows={2}
+                    className="w-full p-3 pr-8 rounded-xl border border-romantic-text/20 bg-white text-xs leading-relaxed focus:outline-none focus:border-romantic-accent"
                   />
-                  <button
-                    onClick={() => setLetterParagraphs(letterParagraphs.filter((_, idx) => idx !== index))}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors self-start"
-                    title="Eliminar párrafo"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {letterParagraphs.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setLetterParagraphs(prev => prev.filter((_, i) => i !== index))}
+                      className="absolute top-2 right-2 text-romantic-text/30 hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               ))}
 
               <button
-                onClick={() => setLetterParagraphs([...letterParagraphs, 'Nuevo párrafo romántico...'])}
-                className="text-xs text-romantic-accent font-semibold hover:underline mt-2 cursor-pointer"
+                type="button"
+                onClick={() => setLetterParagraphs(prev => [...prev, ''])}
+                className="text-xs font-bold text-romantic-accent hover:underline flex items-center gap-1 cursor-pointer"
               >
                 + Agregar otro párrafo
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* STEP 4: Music Selection with Pre-Listen Preview */}
+        {/* ─── PASO 4: MÚSICA DE FONDO ─── */}
         {step === 4 && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-6">
-              4. Música de Fondo
-            </h2>
-
-            <div className="flex justify-center gap-4 mb-6">
-              <button
-                onClick={() => setAudioChoice('preloaded')}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                  audioChoice === 'preloaded'
-                    ? 'bg-romantic-accent text-white shadow-md'
-                    : 'bg-white text-romantic-text/70 border border-romantic-text/10'
-                }`}
-              >
-                🎵 Canciones Precargadas
-              </button>
-              <button
-                onClick={() => setAudioChoice('custom')}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                  audioChoice === 'custom'
-                    ? 'bg-romantic-accent text-white shadow-md'
-                    : 'bg-white text-romantic-text/70 border border-romantic-text/10'
-                }`}
-              >
-                📁 Subir mi propio MP3
-              </button>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-bold mb-1">4. Música de Fondo</h2>
+              <p className="text-xs text-romantic-text/60">Elige una canción precargada o sube tu propia canción.</p>
             </div>
 
-            {audioChoice === 'preloaded' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {PRELOADED_AUDIO_TRACKS.map((track) => {
-                  const isSelected = selectedPreloadedId === track.id;
-                  const isPreviewing = previewTrackId === track.id;
-
-                  return (
-                    <div
-                      key={track.id}
-                      onClick={() => setSelectedPreloadedId(track.id)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                        isSelected
-                          ? 'border-romantic-accent bg-romantic-accent/10 shadow-md'
-                          : 'border-romantic-text/10 bg-white hover:border-romantic-accent/50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Play/Pause Pre-Listen Button */}
-                        <button
-                          onClick={(e) => handleTogglePreviewTrack(track.id, track.url, e)}
-                          className={`p-2.5 rounded-full transition-transform hover:scale-110 cursor-pointer ${
-                            isPreviewing
-                              ? 'bg-romantic-accent text-white shadow'
-                              : 'bg-romantic-accent/10 text-romantic-accent hover:bg-romantic-accent/20'
-                          }`}
-                          title={isPreviewing ? "Pausar pre-escucha" : "Escuchar muestra"}
-                        >
-                          {isPreviewing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                        </button>
-
-                        <div>
-                          <h4 className="font-semibold text-sm text-romantic-text">{track.name}</h4>
-                          <p className="text-xs text-romantic-text/60">{track.artist}</p>
-                        </div>
-                      </div>
-
-                      {isSelected && (
-                        <span className="text-xs font-bold text-romantic-accent flex items-center gap-1 bg-white/80 px-2.5 py-1 rounded-full border border-romantic-accent/20">
-                          <Check size={14} /> Seleccionada
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center p-6 border-2 border-dashed border-romantic-accent/30 rounded-2xl bg-white/50">
-                <Music className="w-12 h-12 text-romantic-accent mx-auto mb-3" />
-                <h4 className="font-semibold text-sm mb-2">Selecciona un archivo MP3 de tu dispositivo</h4>
-                <label className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-5 py-2.5 rounded-full text-xs font-semibold cursor-pointer shadow inline-block transition-transform hover:scale-105">
-                  Seleccionar MP3
-                  <input
-                    type="file"
-                    accept="audio/mp3,audio/*"
-                    onChange={handleCustomAudioUpload}
-                    className="hidden"
-                  />
-                </label>
-                
-                {customAudioUrl && (
-                  <div className="mt-4 flex flex-col items-center gap-2">
-                    <p className="text-xs text-green-600 font-semibold">
-                      ✓ Archivo cargado correctamente.
-                    </p>
-                    <button
-                      onClick={(e) => handleTogglePreviewTrack('custom_preview', customAudioUrl, e)}
-                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-romantic-accent/10 text-romantic-accent text-xs font-semibold cursor-pointer hover:bg-romantic-accent/20"
-                    >
-                      {previewTrackId === 'custom_preview' ? (
-                        <> <Pause size={14} fill="currentColor" /> Pausar Pre-escucha </>
-                      ) : (
-                        <> <Play size={14} fill="currentColor" /> Escuchar MP3 Subido </>
-                      )}
-                    </button>
-                  </div>
-                )}
+            {audioError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs text-center font-medium">
+                {audioError}
               </div>
             )}
-          </div>
+
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {PRELOADED_AUDIO_TRACKS.map((track) => (
+                  <div
+                    key={track.id}
+                    onClick={() => {
+                      setSelectedPreloadedId(track.id);
+                      setAudioChoice('preloaded');
+                    }}
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                      audioChoice === 'preloaded' && selectedPreloadedId === track.id
+                        ? 'border-romantic-accent bg-romantic-accent/10 font-bold'
+                        : 'border-romantic-text/15 bg-white hover:border-romantic-accent/40'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-xs font-serif italic text-romantic-accent">{track.name}</p>
+                      <p className="text-[10px] text-romantic-text/50">{track.artist}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleTogglePreviewTrack(track.id, track.url, e)}
+                      className="p-2 rounded-full bg-white border border-romantic-text/10 text-romantic-accent shadow-sm hover:scale-110 transition-transform"
+                    >
+                      {previewTrackId === track.id ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom Song Upload */}
+              <div className="pt-4 border-t border-romantic-text/10">
+                <label className="block text-xs font-bold mb-2 text-romantic-text/80">
+                  O si lo prefieres, sube tu propia canción (Máx. 8 MB):
+                </label>
+                <label className="flex items-center justify-center gap-2 bg-white border-2 border-dashed border-romantic-accent/40 hover:border-romantic-accent p-4 rounded-xl cursor-pointer text-xs font-semibold text-romantic-accent">
+                  <Upload size={16} /> Subir mi canción (MP3)
+                  <input type="file" accept="audio/*" onChange={handleCustomAudioUpload} className="hidden" />
+                </label>
+                {audioChoice === 'custom' && customAudioUrl && (
+                  <p className="text-[11px] text-green-600 font-semibold mt-2 text-center">
+                    ✓ Canción personalizada seleccionada correctamente.
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
         )}
 
-        {/* STEP 5: Albums / Galleries with Editable Titles */}
+        {/* ─── PASO 5: ÁLBUMES Y CUPONES OPCIONALES ─── */}
         {step === 5 && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic text-center mb-6">
-              5. Álbumes de Fotos ("Nuestros Momentos")
-            </h2>
-
-            {/* Add Album Input */}
-            <div className="flex gap-2 mb-6">
-              <input
-                type="text"
-                value={newGalleryTitle}
-                onChange={(e) => setNewGalleryTitle(e.target.value)}
-                placeholder="Título del nuevo álbum (ej. Viajes juntos, Salidas...)"
-                className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
-              />
-              <button
-                onClick={handleAddGallery}
-                className="bg-romantic-accent text-white px-5 py-3 rounded-xl text-xs font-semibold shadow hover:bg-romantic-accent-hover whitespace-nowrap cursor-pointer"
-              >
-                + Crear Álbum
-              </button>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-bold mb-1">5. Recuerdos y Cupones</h2>
+              <p className="text-xs text-romantic-text/60">Organiza tus álbumes de fotos y añade cupones rascables opcionales.</p>
             </div>
 
-            {/* Albums List */}
-            <div className="space-y-6">
+            {/* Album Section */}
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif font-bold text-base text-romantic-accent">
+                  Álbumes de Fotos (Máx. 4 álbumes)
+                </h3>
+                {galleries.length < 4 && (
+                  <button
+                    type="button"
+                    onClick={handleAddGallery}
+                    className="text-xs font-bold text-romantic-accent hover:underline cursor-pointer"
+                  >
+                    + Nuevo Álbum
+                  </button>
+                )}
+              </div>
+
               {galleries.map((gallery) => (
-                <div key={gallery.id} className="p-5 bg-white/90 rounded-2xl border border-romantic-text/10 shadow-sm space-y-4">
-                  
-                  {/* Editable Title Header */}
-                  <div className="flex items-center justify-between border-b border-romantic-text/10 pb-3">
+                <div key={gallery.id} className="bg-white p-4 rounded-xl border border-romantic-text/10 space-y-3">
+                  <div className="flex items-center justify-between">
                     {editingTitleGalleryId === gallery.id ? (
-                      <div className="flex items-center gap-2 w-full max-w-sm">
-                        <input
-                          type="text"
-                          value={gallery.title}
-                          onChange={(e) => handleUpdateAlbumTitle(gallery.id, e.target.value)}
-                          onBlur={() => setEditingTitleGalleryId(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') setEditingTitleGalleryId(null);
-                          }}
-                          autoFocus
-                          className="w-full p-1.5 px-3 rounded-lg border border-romantic-accent text-base font-serif italic text-romantic-accent font-bold focus:outline-none bg-white"
-                        />
-                        <button
-                          onClick={() => setEditingTitleGalleryId(null)}
-                          className="text-xs bg-romantic-accent text-white px-3 py-1.5 rounded-lg font-semibold"
-                        >
-                          Guardar
-                        </button>
-                      </div>
+                      <input
+                        type="text"
+                        value={newGalleryTitle}
+                        onChange={(e) => setNewGalleryTitle(e.target.value)}
+                        onBlur={() => {
+                          if (newGalleryTitle.trim()) {
+                            setGalleries(prev => prev.map(g => g.id === gallery.id ? { ...g, title: newGalleryTitle } : g));
+                          }
+                          setEditingTitleGalleryId(null);
+                        }}
+                        autoFocus
+                        className="px-2 py-1 rounded border border-romantic-accent text-xs font-serif italic"
+                      />
                     ) : (
-                      <div className="flex items-center gap-2 group cursor-pointer" title="Editar título" onClick={() => setEditingTitleGalleryId(gallery.id)}>
-                        <h3 className="font-serif italic font-bold text-lg text-romantic-accent">
-                          {gallery.title}
-                        </h3>
-                        <Edit3 size={16} className="text-romantic-text/40 group-hover:text-romantic-accent transition-colors" />
-                        <span className="text-xs text-romantic-text/50 font-normal ml-2">
-                          ({gallery.images.length}/5 fotos)
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-serif italic font-bold text-sm text-romantic-accent">{gallery.title}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingTitleGalleryId(gallery.id);
+                            setNewGalleryTitle(gallery.title);
+                          }}
+                          className="text-romantic-text/40 hover:text-romantic-accent"
+                        >
+                          <Edit3 size={12} />
+                        </button>
                       </div>
                     )}
 
-                    <button
-                      onClick={() => setGalleries(galleries.filter(g => g.id !== gallery.id))}
-                      className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 size={14} /> Eliminar Álbum
-                    </button>
+                    {galleries.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteGallery(gallery.id)}
+                        className="text-xs text-red-500 hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
 
-                  {/* Photo Thumbnails */}
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {gallery.images.map((imgUrl, idx) => (
-                      <div key={idx} className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-square shadow-sm">
-                        <img src={imgUrl} alt={`Foto ${idx}`} className="w-full h-full object-cover" />
-                        
-                        {gallery.coverImage === imgUrl && (
-                          <span className="absolute top-1 left-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
-                            Portada
-                          </span>
-                        )}
+                  {/* Photos Grid */}
+                  <div className="grid grid-cols-5 gap-2">
+                    {gallery.images.map((imgUrl, imgIdx) => {
+                      const isCover = gallery.coverImage === imgUrl;
+                      return (
+                        <div key={imgIdx} className="relative group aspect-square rounded-lg overflow-hidden border border-romantic-text/10">
+                          <img src={imgUrl} alt="Foto" className="w-full h-full object-cover" />
+                          
+                          {/* Cover Badge */}
+                          {isCover && (
+                            <span className="absolute top-1 left-1 bg-romantic-accent text-white text-[8px] font-bold px-1.5 py-0.5 rounded">
+                              Portada
+                            </span>
+                          )}
 
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleSetCoverPhoto(gallery.id, imgUrl)}
-                            className={`p-1.5 rounded-full ${gallery.coverImage === imgUrl ? 'bg-green-500 text-white' : 'bg-white text-gray-800'}`}
-                            title="Establecer como Foto de Portada"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeletePhoto(gallery.id, idx)}
-                            className="p-1.5 rounded-full bg-red-500 text-white"
-                            title="Eliminar foto"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                            {!isCover && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetCoverPhoto(gallery.id, imgUrl)}
+                                className="p-1 bg-white text-romantic-accent rounded text-[9px] font-bold"
+                                title="Fijar como foto de portada"
+                              >
+                                Portada
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePhoto(gallery.id, imgIdx)}
+                              className="p-1 bg-white text-red-500 rounded"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {gallery.images.length < 5 && (
-                      <label className="border-2 border-dashed border-romantic-accent/40 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-romantic-accent/5 aspect-square text-romantic-accent text-xs font-semibold p-2 text-center transition-colors">
-                        <Upload size={18} className="mb-1" /> + Agregar Foto
+                      <label className="aspect-square rounded-lg border-2 border-dashed border-romantic-accent/30 flex flex-col items-center justify-center cursor-pointer hover:border-romantic-accent text-romantic-accent">
+                        <Upload size={14} />
+                        <span className="text-[9px] font-bold mt-1">+ Foto</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -703,76 +727,225 @@ export const Builder: React.FC<BuilderProps> = ({ onSave, onCancel }) => {
                       </label>
                     )}
                   </div>
-                  <p className="text-[11px] text-romantic-text/60 italic">
-                    💡 Haz clic en el icono del lápiz junto al nombre del álbum para editar su título. Límite de 5 fotos por álbum (1x1).
-                  </p>
+                  <p className="text-[10px] text-romantic-text/40">{gallery.images.length}/5 fotos subidas (1x1)</p>
                 </div>
               ))}
             </div>
-          </div>
+
+            {/* Coupons Optional Section */}
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gift size={18} className="text-romantic-accent" />
+                  <label className="font-serif font-bold text-sm text-romantic-text">
+                    ¿Quieres incluir Cupones de Regalo rascables?
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCouponHelp(true)}
+                    className="text-romantic-text/40 hover:text-romantic-accent"
+                    title="¿Qué es esto?"
+                  >
+                    <HelpCircle size={14} />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIncludeCoupons(true)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                      includeCoupons ? 'bg-romantic-accent text-white' : 'bg-romantic-bg text-romantic-text/50'
+                    }`}
+                  >
+                    Sí
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIncludeCoupons(false)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                      !includeCoupons ? 'bg-romantic-accent text-white' : 'bg-romantic-bg text-romantic-text/50'
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+
+              {includeCoupons && (
+                <div className="space-y-3 pt-2">
+                  {coupons.map((coupon, idx) => (
+                    <div key={coupon.id} className="p-3 bg-white rounded-xl border border-romantic-text/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-romantic-accent">Cupón #{idx + 1}</span>
+                        {coupons.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setCoupons(prev => prev.filter(c => c.id !== coupon.id))}
+                            className="text-xs text-red-500"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={coupon.rewardText}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCoupons(prev => prev.map(c => c.id === coupon.id ? { ...c, rewardText: val } : c));
+                        }}
+                        placeholder="Ej: Vale por una cena romántica 🕯️"
+                        className="w-full px-3 py-1.5 rounded-lg border border-romantic-text/20 text-xs focus:outline-none focus:border-romantic-accent"
+                      />
+                    </div>
+                  ))}
+
+                  {coupons.length < 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setCoupons(prev => [...prev, { id: `c_${Date.now()}`, title: `Cupón #${prev.length + 1}`, rewardText: '' }])}
+                      className="text-xs font-bold text-romantic-accent hover:underline"
+                    >
+                      + Añadir otro cupón
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
 
-        {/* STEP 6: Finalize & URL */}
+        {/* ─── PASO 6: GENERAR ENLACE Y PUBLICAR ─── */}
         {step === 6 && (
-          <div className="space-y-6 text-center">
-            <h2 className="font-serif text-2xl sm:text-3xl text-romantic-accent italic mb-4">
-              6. Genera tu Enlace Especial
-            </h2>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-bold mb-1">6. Publicar Dedicatoria</h2>
+              <p className="text-xs text-romantic-text/60">Verifica tu enlace personalizado y publica tu regalo.</p>
+            </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-romantic-text/10 shadow-sm text-left">
-              <label className="block text-sm font-semibold mb-2 text-romantic-text/80">URL Personalizada de la Dedicatoria</label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-romantic-text/60 font-mono bg-gray-100 p-3 rounded-xl border border-romantic-text/10">
-                  jromerodigital.github.io/247JS/#/d/
-                </span>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  placeholder="jorge-y-susana"
-                  className="w-full p-3 rounded-xl border border-romantic-text/20 bg-white text-sm font-semibold text-romantic-accent focus:outline-none"
-                />
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-4">
+              <div>
+                <label className="block text-xs font-bold mb-1 text-romantic-text/80">
+                  Enlace personalizado (Slug)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-romantic-text/40 font-mono">/ #/d/</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="lucia-juan-27062026"
+                    className="w-full px-3 py-2 rounded-xl border border-romantic-text/20 bg-white text-xs font-mono focus:outline-none focus:border-romantic-accent"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-white rounded-xl border border-romantic-text/10 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-romantic-text/60">Para:</span>
+                  <span className="font-bold">{partnerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-romantic-text/60">De:</span>
+                  <span className="font-bold">{senderName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-romantic-text/60">Álbumes:</span>
+                  <span className="font-bold">{galleries.length} álbumes</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-romantic-text/60">Cupones rascables:</span>
+                  <span className="font-bold">{includeCoupons ? `${coupons.length} cupones` : 'Sin cupones'}</span>
+                </div>
               </div>
             </div>
-
-            <div className="p-6 bg-romantic-accent/5 rounded-2xl border border-romantic-accent/20 flex flex-col items-center">
-              <QrCode className="w-16 h-16 text-romantic-accent mb-3" />
-              <h4 className="font-semibold text-sm mb-1">¡Listo para publicar y sorprender!</h4>
-              <p className="text-xs text-romantic-text/70 mb-4 max-w-md">
-                Se guardará tu dedicatoria con el enlace personalizado elegido. Podrás compartir el link o imprimir el Código QR para obsequiarlo en una carta física.
-              </p>
-              
-              <button
-                onClick={handleComplete}
-                className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-8 py-3.5 rounded-full font-bold shadow-lg flex items-center gap-2 text-base transition-transform hover:scale-105 cursor-pointer"
-              >
-                💖 Publicar mi Dedicatoria
-              </button>
-            </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Stepper Navigation Buttons */}
-        <div className="flex items-center justify-between pt-8 border-t border-romantic-text/10 mt-8">
+        {/* ─── BOTTOM CONTROL NAVIGATION ─── */}
+        <div className="flex items-center justify-between mt-8 pt-4 border-t border-romantic-text/10">
           {step > 1 ? (
             <button
-              onClick={() => setStep(step - 1)}
-              className="px-6 py-2.5 rounded-full border border-romantic-text/20 text-romantic-text/80 font-semibold text-sm hover:bg-white transition-colors cursor-pointer flex items-center gap-1.5"
+              type="button"
+              onClick={() => setStep(prev => prev - 1)}
+              className="bg-white text-romantic-text border border-romantic-text/20 px-5 py-2.5 rounded-full text-xs font-bold hover:bg-romantic-bg transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <ArrowLeft size={16} /> Anterior
+              <ArrowLeft size={14} /> Anterior
             </button>
           ) : <div />}
 
-          {step < 6 && (
+          {step < 6 ? (
             <button
-              onClick={() => setStep(step + 1)}
-              className="px-6 py-2.5 rounded-full bg-romantic-accent text-white font-semibold text-sm hover:bg-romantic-accent-hover shadow transition-transform hover:scale-105 cursor-pointer flex items-center gap-1.5"
+              type="button"
+              onClick={() => setStep(prev => prev + 1)}
+              className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-6 py-2.5 rounded-full text-xs font-bold shadow flex items-center gap-1.5 transition-transform hover:scale-105 cursor-pointer"
             >
-              Siguiente <ArrowRight size={16} />
+              Siguiente <ArrowRight size={14} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleComplete}
+              disabled={isProcessing}
+              className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 transition-transform hover:scale-105 cursor-pointer"
+            >
+              <Heart size={16} fill="currentColor" /> Publicar Dedicatoria
             </button>
           )}
         </div>
-      </motion.div>
+      </main>
+
+      {/* ─── MODAL PREVISUALIZACIÓN DE CARTA (Paso 3) ─── */}
+      {isPreviewLetterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md bg-romantic-card rounded-2xl p-6 sm:p-8 shadow-2xl border border-[#F2E8D5] relative my-8"
+          >
+            <button
+              onClick={() => setIsPreviewLetterOpen(false)}
+              className="absolute top-4 right-4 p-2 text-romantic-text/60 hover:text-romantic-text"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="text-center mb-6">
+              <span className="font-serif italic font-bold text-xl text-romantic-accent">
+                Previsualización de tu Carta
+              </span>
+            </div>
+
+            <div className="font-serif leading-relaxed text-sm space-y-4 bg-[#FFFBF0] p-6 rounded-xl border border-[#E8DCC4]">
+              <p className="italic text-romantic-accent font-bold">
+                {letterTitle || `Para ti, ${partnerName || 'mi amor'}:`}
+              </p>
+              {letterParagraphs.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ─── MODAL AYUDA CUPONES (Paso 5) ─── */}
+      {showCouponHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-xl relative">
+            <button onClick={() => setShowCouponHelp(false)} className="absolute top-3 right-3 text-romantic-text/40">
+              <X size={16} />
+            </button>
+            <h4 className="font-serif font-bold text-base mb-2 text-romantic-accent">¿Qué son los Cupones Rascables?</h4>
+            <p className="text-xs text-romantic-text/70 leading-relaxed mb-4">
+              Son tarjetas virtuales interactiva que tu pareja debe raspar con su dedo o mouse para descubrir recompensas románticas que tú le regalas (ej: *"Vale por una cena"*, *"Vale por un masaje"*).
+            </p>
+            <p className="text-xs text-romantic-text/70 leading-relaxed">
+              Al desbloquear un cupón, aparecerá un botón instantáneo para enviarte la captura por WhatsApp y reclamar su premio.
+            </p>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

@@ -17,6 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -24,6 +25,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
 
     if (!email || !password) {
       setError('Por favor completa todos los campos obligatorios.');
@@ -38,13 +40,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           setLoading(false);
           return;
         }
-        const newUser = await registerApi(email, password, name, lastName);
-        onSuccess(newUser);
+        await registerApi(email, password, name, lastName);
+        setSuccessMessage('🎉 ¡Cuenta creada con éxito! Por favor inicia sesión a continuación.');
+        setMode('login');
+        setPassword('');
       } else {
         const loggedUser = await loginApi(email, password);
         onSuccess(loggedUser);
+        onClose();
       }
-      onClose();
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error al procesar la solicitud.');
     } finally {
@@ -80,6 +84,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               : 'Regístrate para guardar y publicar tus regalos románticos'}
           </p>
         </div>
+
+        {successMessage && (
+          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold text-center">
+            {successMessage}
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium text-center">

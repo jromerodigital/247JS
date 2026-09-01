@@ -14,6 +14,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [currentDedication, setCurrentDedication] = useState<DedicationData | null>(null);
+  const [editingDedication, setEditingDedication] = useState<DedicationData | undefined>(undefined);
 
   // Restore session from localStorage
   useEffect(() => {
@@ -52,7 +53,6 @@ export default function App() {
           setView('landing');
         }
       } else {
-        // Root path: show landing if not logged in, dashboard if logged in
         if (currentUser) {
           setView('dashboard');
         } else {
@@ -89,12 +89,12 @@ export default function App() {
   };
 
   const handleSaveDedication = async (newDedication: DedicationData) => {
-    // Attach user email to dedication
     if (currentUser) {
       newDedication.userEmail = currentUser.email;
     }
     await saveDedicationApi(newDedication);
     setCurrentDedication(newDedication);
+    setEditingDedication(undefined);
     window.location.hash = `#/d/${newDedication.slug}`;
     setView('viewer');
   };
@@ -103,15 +103,15 @@ export default function App() {
 
   if (view === 'builder' && currentUser) {
     return (
-      <>
-        <Builder
-          onSave={handleSaveDedication}
-          onCancel={() => {
-            window.location.hash = '#/dashboard';
-            setView('dashboard');
-          }}
-        />
-      </>
+      <Builder
+        initialData={editingDedication}
+        onSave={handleSaveDedication}
+        onCancel={() => {
+          setEditingDedication(undefined);
+          window.location.hash = '#/dashboard';
+          setView('dashboard');
+        }}
+      />
     );
   }
 
@@ -122,11 +122,17 @@ export default function App() {
           user={currentUser}
           onLogout={handleLogout}
           onCreateNew={() => {
+            setEditingDedication(undefined);
             window.location.hash = '#/crear';
             setView('builder');
           }}
           onViewDedication={(slug) => {
             window.location.hash = `#/d/${slug}`;
+          }}
+          onEditDedication={(dedicationToEdit) => {
+            setEditingDedication(dedicationToEdit);
+            window.location.hash = '#/crear';
+            setView('builder');
           }}
         />
         <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onSuccess={handleAuthSuccess} />

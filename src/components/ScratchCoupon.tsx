@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Sparkles, Gift, Check } from 'lucide-react';
+import { Gift, Check, MessageCircle } from 'lucide-react';
 import { ScratchCouponData } from '../types/dedication';
 
 interface ScratchCouponProps {
   coupon: ScratchCouponData;
+  partnerName?: string;
+  senderName?: string;
 }
 
-export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon }) => {
+export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon, partnerName = 'mi amor', senderName = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const isScratchingRef = useRef(false);
@@ -21,7 +23,7 @@ export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon }) => {
     const width = canvas.width;
     const height = canvas.height;
 
-    // Draw metallic rose-gold scratch layer
+    // Metal rose-gold gradient
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, '#E5A9B4');
     gradient.addColorStop(0.5, '#C86D7D');
@@ -30,7 +32,6 @@ export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon }) => {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // Overlay text instructions
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
@@ -53,7 +54,6 @@ export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon }) => {
     ctx.arc(clientX, clientY, 18, 0, Math.PI * 2);
     ctx.fill();
 
-    // Check revealed percentage
     if (!isRevealed) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       let clearedPixels = 0;
@@ -67,39 +67,33 @@ export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon }) => {
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    isScratchingRef.current = true;
-    scratch(e.clientX, e.clientY);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isScratchingRef.current) {
-      scratch(e.clientX, e.clientY);
-    }
-  };
-
-  const handleMouseUp = () => {
-    isScratchingRef.current = false;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length > 0) {
-      const touch = e.touches[0];
-      scratch(touch.clientX, touch.clientY);
-    }
+  const handleClaimWhatsApp = () => {
+    const message = encodeURIComponent(
+      `¡Hola ${senderName || 'mi amor'}! ❤️ Acabo de raspar tu dedicatoria y desbloqueé este regalo:\n\n✨ *${coupon.title}*: ${coupon.rewardText}\n\n¡Quiero reclamarlo! 🕯️🥂`
+    );
+    window.open(`https://wa.me/?text=${message}`, '_blank');
   };
 
   return (
-    <div className="relative w-full aspect-[2.8/1] max-w-sm mx-auto bg-white rounded-2xl p-4 shadow-md border-2 border-dashed border-romantic-accent/40 flex flex-col items-center justify-center overflow-hidden">
-      {/* Hidden Reward (Underneath Canvas) */}
+    <div className="relative w-full aspect-[2.4/1] max-w-sm mx-auto bg-white rounded-2xl p-4 shadow-md border-2 border-dashed border-romantic-accent/40 flex flex-col items-center justify-center overflow-hidden">
+      {/* Hidden Reward */}
       <div className="absolute inset-0 flex flex-col items-center justify-center p-3 bg-gradient-to-br from-[#FFFBF5] to-[#FFF5E8] text-center">
-        <Gift size={20} className="text-romantic-accent mb-1" />
-        <h4 className="font-serif italic font-bold text-sm text-romantic-accent">{coupon.title}</h4>
-        <p className="font-sans font-bold text-base text-romantic-text mt-0.5">{coupon.rewardText}</p>
+        <Gift size={20} className="text-romantic-accent mb-0.5" />
+        <h4 className="font-serif italic font-bold text-xs text-romantic-accent">{coupon.title}</h4>
+        <p className="font-sans font-bold text-sm text-romantic-text mt-0.5 leading-snug">{coupon.rewardText}</p>
+        
         {isRevealed && (
-          <span className="mt-1 text-[10px] text-green-600 font-semibold flex items-center gap-1">
-            <Check size={12} /> ¡Cupón Desbloqueado!
-          </span>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[10px] text-green-600 font-bold flex items-center gap-1">
+              <Check size={12} /> Desbloqueado
+            </span>
+            <button
+              onClick={handleClaimWhatsApp}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1 transition-transform hover:scale-105 cursor-pointer"
+            >
+              <MessageCircle size={11} /> Reclamar por WhatsApp
+            </button>
+          </div>
         )}
       </div>
 
@@ -108,12 +102,10 @@ export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon }) => {
         <canvas
           ref={canvasRef}
           width={300}
-          height={110}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchMove={handleTouchMove}
+          height={120}
+          onMouseDown={(e) => scratch(e.clientX, e.clientY)}
+          onMouseMove={(e) => e.buttons === 1 && scratch(e.clientX, e.clientY)}
+          onTouchMove={(e) => e.touches.length > 0 && scratch(e.touches[0].clientX, e.touches[0].clientY)}
           className="absolute inset-0 w-full h-full cursor-pointer touch-none rounded-xl"
         />
       )}

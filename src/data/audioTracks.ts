@@ -8,9 +8,9 @@ export const PRELOADED_AUDIO_TRACKS: PreloadedAudio[] = [
     url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-piano-112199.mp3',
   },
   {
-    id: 'love-story-violins',
-    name: 'Violín y Atardecer',
-    artist: 'Sinfonía Romántica',
+    id: 'sweet-moments',
+    name: 'Momentos Dulces',
+    artist: 'Sinfonía Acústica',
     url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8b9d88583.mp3?filename=sweet-love-10901.mp3',
   },
   {
@@ -24,5 +24,17 @@ export const PRELOADED_AUDIO_TRACKS: PreloadedAudio[] = [
     name: 'Brisa de Verano',
     artist: 'Piano Acústico',
     url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=romantic-love-song-15944.mp3',
+  },
+  {
+    id: 'cinematic-love',
+    name: 'Atardecer de Amor',
+    artist: 'Orquesta Romántica',
+    url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_2d5dbd3910.mp3?filename=love-cinematic-piano-124967.mp3',
+  },
+  {
+    id: 'gentle-breeze',
+    name: 'Abrazo de Estrellas',
+    artist: 'Piano & Cuerdas',
+    url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_51c6ef0202.mp3?filename=romantic-piano-inspire-10515.mp3',
   },
 ];
