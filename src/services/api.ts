@@ -1,7 +1,7 @@
 import { DedicationData, User } from '../types/dedication';
 
 // Si el usuario configura su URL de Apps Script la usaremos, si no, usa el modo LocalStorage sin romper nada
-const APPS_SCRIPT_URL = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || '';
+const APPS_SCRIPT_URL = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxYCedEzDzlq77LqqxAebeAr9MbsKFCQF95uD5AvMnfOLXFQaPnmIcQtHGv5LFbDBVK/exec';
 
 export async function registerApi(email: string, password: string, name: string, lastName: string): Promise<User> {
   if (APPS_SCRIPT_URL) {
