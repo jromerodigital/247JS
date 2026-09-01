@@ -565,74 +565,170 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
               </div>
             )}
 
-            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PRELOADED_AUDIO_TRACKS.map((track) => (
-                  <div
-                    key={track.id}
-                    onClick={() => {
-                      setSelectedPreloadedId(track.id);
-                      setAudioChoice('preloaded');
-                    }}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                      audioChoice === 'preloaded' && selectedPreloadedId === track.id
-                        ? 'border-romantic-accent bg-romantic-accent/10 font-bold'
-                        : 'border-romantic-text/15 bg-white hover:border-romantic-accent/40'
+            <div className="bg-romantic-card rounded-2xl p-6 border border-[#F2E8D5] shadow-sm space-y-5">
+              
+              {/* 3 Explicit Option Tabs */}
+              <div>
+                <label className="block text-xs font-bold mb-2 text-romantic-text/80 text-center">
+                  Selecciona cómo quieres incluir la música (Elige 1 de las 3 opciones):
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAudioChoice('preloaded')}
+                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                      audioChoice === 'preloaded'
+                        ? 'border-romantic-accent bg-romantic-accent text-white font-bold shadow-md'
+                        : 'border-romantic-text/15 bg-white text-romantic-text/70 hover:bg-romantic-bg'
                     }`}
                   >
-                    <div>
-                      <p className="text-xs font-serif italic text-romantic-accent">{track.name}</p>
-                      <p className="text-[10px] text-romantic-text/50">{track.artist}</p>
-                    </div>
+                    <Music size={18} />
+                    <span className="text-xs font-semibold">1. Precargadas</span>
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleTogglePreviewTrack(track.id, track.url, e)}
-                      className="p-2 rounded-full bg-white border border-romantic-text/10 text-romantic-accent shadow-sm hover:scale-110 transition-transform"
-                    >
-                      {previewTrackId === track.id ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setAudioChoice('youtube')}
+                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                      audioChoice === 'youtube'
+                        ? 'border-romantic-accent bg-romantic-accent text-white font-bold shadow-md'
+                        : 'border-romantic-text/15 bg-white text-romantic-text/70 hover:bg-romantic-bg'
+                    }`}
+                  >
+                    <Play size={18} />
+                    <span className="text-xs font-semibold">2. YouTube</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAudioChoice('custom')}
+                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                      audioChoice === 'custom'
+                        ? 'border-romantic-accent bg-romantic-accent text-white font-bold shadow-md'
+                        : 'border-romantic-text/15 bg-white text-romantic-text/70 hover:bg-romantic-bg'
+                    }`}
+                  >
+                    <Upload size={18} />
+                    <span className="text-xs font-semibold">3. Subir MP3</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* OPTION 1: PRELOADED TRACKS */}
+              {audioChoice === 'preloaded' && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-romantic-accent">Canciones románticas clásicas disponibles:</span>
+                    <span className="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                      ✓ Opción seleccionada
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {PRELOADED_AUDIO_TRACKS.map((track) => (
+                      <div
+                        key={track.id}
+                        onClick={() => setSelectedPreloadedId(track.id)}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                          selectedPreloadedId === track.id
+                            ? 'border-romantic-accent bg-romantic-accent/10 font-bold shadow-sm'
+                            : 'border-romantic-text/15 bg-white hover:border-romantic-accent/40'
+                        }`}
+                      >
+                        <div>
+                          <p className="text-xs font-serif italic text-romantic-accent">{track.name}</p>
+                          <p className="text-[10px] text-romantic-text/50">{track.artist}</p>
+                        </div>
 
-              {/* YouTube Link Option */}
-              <div className="pt-4 border-t border-romantic-text/10">
-                <label className="block text-xs font-bold mb-1.5 text-romantic-text/80">
-                  O pega un enlace de YouTube de tu canción especial:
-                </label>
-                <input
-                  type="url"
-                  value={youtubeUrl}
-                  onChange={(e) => {
-                    setYoutubeUrl(e.target.value);
-                    setAudioChoice('youtube');
-                  }}
-                  placeholder="Ej: https://www.youtube.com/watch?v=..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-xs focus:outline-none focus:border-romantic-accent"
-                />
-                {audioChoice === 'youtube' && youtubeUrl && (
-                  <p className="text-[11px] text-green-600 font-semibold mt-1.5">
-                    ✓ Enlace de YouTube registrado correctamente.
-                  </p>
-                )}
-              </div>
+                        <button
+                          type="button"
+                          onClick={(e) => handleTogglePreviewTrack(track.id, track.url, e)}
+                          className="p-2 rounded-full bg-white border border-romantic-text/10 text-romantic-accent shadow-sm hover:scale-110 transition-transform"
+                          title="Probar sonido"
+                        >
+                          {previewTrackId === track.id ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {/* Custom Song Upload */}
-              <div className="pt-4 border-t border-romantic-text/10">
-                <label className="block text-xs font-bold mb-2 text-romantic-text/80">
-                  O sube tu propio archivo de audio (Máx. 8 MB):
-                </label>
-                <label className="flex items-center justify-center gap-2 bg-white border-2 border-dashed border-romantic-accent/40 hover:border-romantic-accent p-4 rounded-xl cursor-pointer text-xs font-semibold text-romantic-accent">
-                  <Upload size={16} /> Subir mi canción (MP3)
-                  <input type="file" accept="audio/*" onChange={handleCustomAudioUpload} className="hidden" />
-                </label>
-                {audioChoice === 'custom' && customAudioUrl && (
-                  <p className="text-[11px] text-green-600 font-semibold mt-2 text-center">
-                    ✓ Canción personalizada seleccionada correctamente.
-                  </p>
-                )}
-              </div>
+              {/* OPTION 2: YOUTUBE LINK WITH LIVE PREVIEW PLAYER */}
+              {audioChoice === 'youtube' && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-romantic-accent">
+                      Pega tu enlace de YouTube:
+                    </label>
+                    <span className="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                      ✓ Opción seleccionada
+                    </span>
+                  </div>
+                  <input
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="Ej: https://www.youtube.com/watch?v=9uB1Bl2SVBs o https://youtu.be/..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-xs focus:outline-none focus:border-romantic-accent"
+                  />
+
+                  {/* YouTube Live Music Card Preview */}
+                  {(() => {
+                    const match = youtubeUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+                    const ytId = match && match[2].length === 11 ? match[2] : null;
+                    if (!ytId) return null;
+
+                    return (
+                      <div className="bg-white p-4 rounded-xl border border-romantic-accent/30 flex items-center gap-4 shadow-sm">
+                        <img
+                          src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                          alt="Thumbnail Canción YouTube"
+                          className="w-20 h-14 object-cover rounded-lg flex-shrink-0 border border-romantic-text/10"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-bold text-romantic-accent uppercase tracking-wider block">
+                            Canción de YouTube identificada
+                          </span>
+                          <p className="text-xs font-bold text-romantic-text truncate mt-0.5">
+                            ID: {ytId}
+                          </p>
+                          <p className="text-[10px] text-green-600 font-semibold mt-0.5">
+                            ✓ Se reproducirá de fondo automáticamente en la dedicatoria
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* OPTION 3: CUSTOM MP3 UPLOAD WITH HTML5 PLAYER */}
+              {audioChoice === 'custom' && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-romantic-accent">
+                      Sube tu archivo de audio en MP3 (Máx. 8 MB):
+                    </label>
+                    <span className="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                      ✓ Opción seleccionada
+                    </span>
+                  </div>
+                  <label className="flex items-center justify-center gap-2 bg-white border-2 border-dashed border-romantic-accent/40 hover:border-romantic-accent p-4 rounded-xl cursor-pointer text-xs font-semibold text-romantic-accent">
+                    <Upload size={16} /> Seleccionar archivo de mi equipo (MP3)
+                    <input type="file" accept="audio/*" onChange={handleCustomAudioUpload} className="hidden" />
+                  </label>
+
+                  {customAudioUrl && (
+                    <div className="bg-white p-4 rounded-xl border border-romantic-accent/30 space-y-2">
+                      <p className="text-xs font-bold text-romantic-accent">
+                        ✓ Archivo MP3 cargado correctamente. Escúchalo aquí:
+                      </p>
+                      <audio controls src={customAudioUrl} className="w-full h-8" />
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           </motion.div>
         )}
