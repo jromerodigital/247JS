@@ -672,30 +672,71 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
                     className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-xs focus:outline-none focus:border-romantic-accent"
                   />
 
-                  {/* YouTube Live Music Card Preview */}
+                  {/* YouTube Live Music Card Preview & Interactive Audio Player */}
                   {(() => {
                     const match = youtubeUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
                     const ytId = match && match[2].length === 11 ? match[2] : null;
                     if (!ytId) return null;
 
+                    const isPlayingThis = previewTrackId === `yt_${ytId}`;
+
                     return (
-                      <div className="bg-white p-4 rounded-xl border border-romantic-accent/30 flex items-center gap-4 shadow-sm">
-                        <img
-                          src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-                          alt="Thumbnail Canción YouTube"
-                          className="w-20 h-14 object-cover rounded-lg flex-shrink-0 border border-romantic-text/10"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-bold text-romantic-accent uppercase tracking-wider block">
-                            Canción de YouTube identificada
-                          </span>
-                          <p className="text-xs font-bold text-romantic-text truncate mt-0.5">
-                            ID: {ytId}
-                          </p>
-                          <p className="text-[10px] text-green-600 font-semibold mt-0.5">
-                            ✓ Se reproducirá de fondo automáticamente en la dedicatoria
-                          </p>
+                      <div className="bg-white p-4 rounded-xl border border-romantic-accent/30 space-y-3 shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                            alt="Thumbnail Canción YouTube"
+                            className="w-20 h-14 object-cover rounded-lg flex-shrink-0 border border-romantic-text/10"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10px] font-bold text-romantic-accent uppercase tracking-wider block">
+                              Canción de YouTube identificada
+                            </span>
+                            <p className="text-xs font-bold text-romantic-text truncate mt-0.5">
+                              Vídeo ID: {ytId}
+                            </p>
+                            <p className="text-[10px] text-green-600 font-semibold mt-0.5">
+                              ✓ Lista para sonar de fondo en tu dedicatoria
+                            </p>
+                          </div>
+
+                          {/* Test Play Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isPlayingThis) {
+                                setPreviewTrackId(null);
+                              } else {
+                                setPreviewTrackId(`yt_${ytId}`);
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-full bg-romantic-accent text-white text-xs font-bold shadow-sm flex items-center gap-1 hover:bg-romantic-accent-hover transition-transform hover:scale-105 cursor-pointer flex-shrink-0"
+                          >
+                            {isPlayingThis ? (
+                              <><Pause size={13} fill="currentColor" /> Detener</>
+                            ) : (
+                              <><Play size={13} fill="currentColor" /> Probar Audio</>
+                            )}
+                          </button>
                         </div>
+
+                        {/* Embedded Live Player Preview when Testing */}
+                        {isPlayingThis && (
+                          <div className="pt-2 border-t border-romantic-text/10">
+                            <p className="text-[11px] font-bold text-romantic-accent mb-2 flex items-center gap-1">
+                              <Play size={12} fill="currentColor" /> Reproduciendo vista previa de YouTube:
+                            </p>
+                            <div className="aspect-video w-full max-w-sm mx-auto rounded-lg overflow-hidden border border-romantic-accent/40 shadow">
+                              <iframe
+                                className="w-full h-full"
+                                src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`}
+                                title="Reproductor de prueba de YouTube"
+                                allow="autoplay; encrypted-media"
+                                allowFullScreen
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
