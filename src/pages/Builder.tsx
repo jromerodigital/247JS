@@ -52,12 +52,16 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
   const [isPreviewLetterOpen, setIsPreviewLetterOpen] = useState(false);
 
   // Audio State
-  const [audioChoice, setAudioChoice] = useState<'preloaded' | 'custom'>(initialData?.audioType || 'preloaded');
+  const [audioChoice, setAudioChoice] = useState<'preloaded' | 'custom' | 'youtube'>(initialData?.audioType || 'preloaded');
   const [selectedPreloadedId, setSelectedPreloadedId] = useState(PRELOADED_AUDIO_TRACKS[0].id);
   const [customAudioUrl, setCustomAudioUrl] = useState<string>(initialData?.audioUrl || '');
+  const [youtubeUrl, setYoutubeUrl] = useState<string>(initialData?.audioType === 'youtube' ? initialData.audioUrl : '');
   const [audioError, setAudioError] = useState<string | null>(null);
   const [previewTrackId, setPreviewTrackId] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // WhatsApp state for coupons claim
+  const [whatsappNumber, setWhatsappNumber] = useState<string>(initialData?.whatsapp || '');
 
   // Albums State (Max 4 albums, max 5 photos each)
   const [galleries, setGalleries] = useState<PhotoGalleryData[]>(
@@ -259,9 +263,12 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
   const handleComplete = async () => {
     if (previewAudioRef.current) previewAudioRef.current.pause();
 
-    const activeAudioUrl = audioChoice === 'preloaded'
-      ? (PRELOADED_AUDIO_TRACKS.find(t => t.id === selectedPreloadedId)?.url || PRELOADED_AUDIO_TRACKS[0].url)
-      : customAudioUrl;
+    let activeAudioUrl = customAudioUrl;
+    if (audioChoice === 'preloaded') {
+      activeAudioUrl = PRELOADED_AUDIO_TRACKS.find(t => t.id === selectedPreloadedId)?.url || PRELOADED_AUDIO_TRACKS[0].url;
+    } else if (audioChoice === 'youtube') {
+      activeAudioUrl = youtubeUrl.trim();
+    }
 
     const finalSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
 
@@ -281,6 +288,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
       audioType: audioChoice,
       galleries,
       coupons: includeCoupons ? coupons : [],
+      whatsapp: whatsappNumber.trim(),
       createdAt: initialData?.createdAt || Date.now()
     };
 
@@ -588,10 +596,32 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
                 ))}
               </div>
 
+              {/* YouTube Link Option */}
+              <div className="pt-4 border-t border-romantic-text/10">
+                <label className="block text-xs font-bold mb-1.5 text-romantic-text/80">
+                  O pega un enlace de YouTube de tu canción especial:
+                </label>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => {
+                    setYoutubeUrl(e.target.value);
+                    setAudioChoice('youtube');
+                  }}
+                  placeholder="Ej: https://www.youtube.com/watch?v=..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-xs focus:outline-none focus:border-romantic-accent"
+                />
+                {audioChoice === 'youtube' && youtubeUrl && (
+                  <p className="text-[11px] text-green-600 font-semibold mt-1.5">
+                    ✓ Enlace de YouTube registrado correctamente.
+                  </p>
+                )}
+              </div>
+
               {/* Custom Song Upload */}
               <div className="pt-4 border-t border-romantic-text/10">
                 <label className="block text-xs font-bold mb-2 text-romantic-text/80">
-                  O si lo prefieres, sube tu propia canción (Máx. 8 MB):
+                  O sube tu propio archivo de audio (Máx. 8 MB):
                 </label>
                 <label className="flex items-center justify-center gap-2 bg-white border-2 border-dashed border-romantic-accent/40 hover:border-romantic-accent p-4 rounded-xl cursor-pointer text-xs font-semibold text-romantic-accent">
                   <Upload size={16} /> Subir mi canción (MP3)
@@ -774,6 +804,22 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
 
               {includeCoupons && (
                 <div className="space-y-3 pt-2">
+                  {/* WhatsApp Field for Coupon Claims */}
+                  <div className="p-3.5 bg-white rounded-xl border border-romantic-accent/20">
+                    <label className="block text-xs font-bold mb-1 text-romantic-text/80">
+                      📱 Tu número de WhatsApp para recibir los reclamos (con código de país):
+                    </label>
+                    <input
+                      type="tel"
+                      value={whatsappNumber}
+                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                      placeholder="Ej: +51987654321"
+                      className="w-full px-3 py-2 rounded-lg border border-romantic-text/20 text-xs focus:outline-none focus:border-romantic-accent"
+                    />
+                    <p className="text-[10px] text-romantic-text/50 mt-1">
+                      Cuando tu pareja raspe un cupón y presione "💬 Reclamar por WhatsApp", se abrirá un chat directo a este número.
+                    </p>
+                  </div>
                   {coupons.map((coupon, idx) => (
                     <div key={coupon.id} className="p-3 bg-white rounded-xl border border-romantic-text/10 space-y-2">
                       <div className="flex items-center justify-between">

@@ -3,6 +3,7 @@ export interface User {
   email: string;
   name: string;
   lastName?: string;
+  whatsapp?: string;
 }
 
 export interface ScratchCouponData {
@@ -45,9 +46,10 @@ export interface DedicationData {
   question: string;
   answerYesText: string;
   audioUrl: string;
-  audioType: 'preloaded' | 'custom';
+  audioType: 'preloaded' | 'custom' | 'youtube';
   galleries: PhotoGalleryData[];
   coupons?: ScratchCouponData[];
+  whatsapp?: string;
   userEmail?: string;
   createdAt: number;
 }

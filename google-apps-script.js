@@ -49,7 +49,7 @@ function inicializarTablas() {
   }
   
   // Escribir encabezados en fila 1
-  var headerUsuarios = ['ID', 'Nombre', 'Apellido', 'Email', 'Password', 'FechaRegistro'];
+  var headerUsuarios = ['ID', 'Nombre', 'Apellido', 'Email', 'Password', 'WhatsApp', 'FechaRegistro'];
   sheetUsuarios.getRange(1, 1, 1, headerUsuarios.length).setValues([headerUsuarios]);
   sheetUsuarios.getRange(1, 1, 1, headerUsuarios.length)
     .setFontWeight('bold')
@@ -63,7 +63,8 @@ function inicializarTablas() {
   sheetUsuarios.setColumnWidth(3, 140);  // Apellido
   sheetUsuarios.setColumnWidth(4, 220);  // Email
   sheetUsuarios.setColumnWidth(5, 140);  // Password
-  sheetUsuarios.setColumnWidth(6, 180);  // FechaRegistro
+  sheetUsuarios.setColumnWidth(6, 160);  // WhatsApp
+  sheetUsuarios.setColumnWidth(7, 180);  // FechaRegistro
   
   // ─── Crear pestaña "Dedicatorias" ───
   var sheetDedicatorias = ss.getSheetByName('Dedicatorias');
@@ -196,12 +197,13 @@ function registerUser(data) {
     data.lastName || '',
     data.email,
     data.password,
+    data.whatsapp || '',
     new Date().toISOString()
   ]);
 
   return {
     success: true,
-    user: { id: userId, name: data.name, lastName: data.lastName, email: data.email }
+    user: { id: userId, name: data.name, lastName: data.lastName, email: data.email, whatsapp: data.whatsapp || '' }
   };
 }
 
@@ -219,7 +221,7 @@ function loginUser(data) {
     if (rowEmail === data.email.toLowerCase() && rowPass === data.password) {
       return {
         success: true,
-        user: { id: rows[i][0], name: rows[i][1], lastName: rows[i][2], email: rows[i][3] }
+        user: { id: rows[i][0], name: rows[i][1], lastName: rows[i][2], email: rows[i][3], whatsapp: rows[i][5] || '' }
       };
     }
   }

@@ -2,7 +2,7 @@ import { DedicationData, User } from '../types/dedication';
 
 const APPS_SCRIPT_URL = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxYCedEzDzlq77LqqxAebeAr9MbsKFCQF95uD5AvMnfOLXFQaPnmIcQtHGv5LFbDBVK/exec';
 
-export async function registerApi(email: string, password: string, name: string, lastName: string): Promise<User> {
+export async function registerApi(email: string, password: string, name: string, lastName: string, whatsapp?: string): Promise<User> {
   if (APPS_SCRIPT_URL) {
     try {
       // Usar text/plain en Apps Script para evitar restricciones preflight CORS del navegador
@@ -11,7 +11,7 @@ export async function registerApi(email: string, password: string, name: string,
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'register',
-          data: { email, password, name, lastName }
+          data: { email, password, name, lastName, whatsapp }
         })
       });
       const text = await res.text();
@@ -32,7 +32,7 @@ export async function registerApi(email: string, password: string, name: string,
     throw new Error('El correo electrónico ya está registrado.');
   }
 
-  const newUser: User = { id: `usr_${Date.now()}`, email, name, lastName };
+  const newUser: User = { id: `usr_${Date.now()}`, email, name, lastName, whatsapp };
   users.push(newUser);
   localStorage.setItem('vibelove_users', JSON.stringify(users));
   localStorage.setItem(`pass_${email.toLowerCase()}`, password);

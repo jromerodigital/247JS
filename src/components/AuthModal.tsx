@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Heart, Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import { X, Heart, Mail, Lock, User as UserIcon, ArrowRight, Phone } from 'lucide-react';
 import { User } from '../types/dedication';
 import { loginApi, registerApi } from '../services/api';
 
@@ -16,6 +16,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           setLoading(false);
           return;
         }
-        await registerApi(email, password, name, lastName);
+        await registerApi(email, password, name, lastName, whatsapp);
         setSuccessMessage('🎉 ¡Cuenta creada con éxito! Por favor inicia sesión a continuación.');
         setMode('login');
         setPassword('');
@@ -99,34 +101,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
-            <div className="grid grid-cols-2 gap-3">
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Nombre</label>
+                  <div className="relative">
+                    <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Tu nombre"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Apellido</label>
+                  <div className="relative">
+                    <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Tu apellido"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Nombre</label>
+                <label className="block text-xs font-semibold mb-1 text-romantic-text/80">
+                  WhatsApp (opcional, para cupones)
+                </label>
                 <div className="relative">
-                  <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
+                  <Phone size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
                   <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Tu nombre"
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="Ej: +51987654321"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Apellido</label>
-                <div className="relative">
-                  <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Tu apellido"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
-                  />
-                </div>
-              </div>
-            </div>
+            </>
           )}
 
           <div>

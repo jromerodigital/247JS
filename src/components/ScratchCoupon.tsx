@@ -6,9 +6,10 @@ interface ScratchCouponProps {
   coupon: ScratchCouponData;
   partnerName?: string;
   senderName?: string;
+  whatsappNumber?: string;
 }
 
-export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon, partnerName = 'mi amor', senderName = '' }) => {
+export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon, partnerName = 'mi amor', senderName = '', whatsappNumber = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const isScratchingRef = useRef(false);
@@ -71,7 +72,9 @@ export const ScratchCoupon: React.FC<ScratchCouponProps> = ({ coupon, partnerNam
     const message = encodeURIComponent(
       `¡Hola ${senderName || 'mi amor'}! ❤️ Acabo de raspar tu dedicatoria y desbloqueé este regalo:\n\n✨ *${coupon.title}*: ${coupon.rewardText}\n\n¡Quiero reclamarlo! 🕯️🥂`
     );
-    window.open(`https://wa.me/?text=${message}`, '_blank');
+    const cleanPhone = whatsappNumber.replace(/[^0-9]/g, '');
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${message}` : `https://wa.me/?text=${message}`;
+    window.open(waUrl, '_blank');
   };
 
   return (

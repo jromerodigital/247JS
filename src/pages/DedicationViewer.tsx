@@ -108,16 +108,34 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
         </motion.div>
       )}
 
-      {/* Hidden Audio Player */}
+      {/* Audio Player (HTML5 or YouTube iframe) */}
       {isAccepted && (
-        <audio
-          ref={audioRef}
-          src={data.audioUrl}
-          autoPlay
-          loop
-          preload="auto"
-          className="hidden"
-        />
+        data.audioType === 'youtube' ? (
+          (() => {
+            const match = data.audioUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+            const videoId = match && match[2].length === 11 ? match[2] : null;
+            return videoId ? (
+              <div className="hidden">
+                <iframe
+                  width="1"
+                  height="1"
+                  src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}&controls=0`}
+                  title="Música de fondo YouTube"
+                  allow="autoplay"
+                />
+              </div>
+            ) : null;
+          })()
+        ) : (
+          <audio
+            ref={audioRef}
+            src={data.audioUrl}
+            autoPlay
+            loop
+            preload="auto"
+            className="hidden"
+          />
+        )
       )}
 
       <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-16 flex flex-col items-center">
@@ -247,7 +265,13 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
                     {data.coupons.map((coupon) => (
-                      <ScratchCoupon key={coupon.id} coupon={coupon} />
+                      <ScratchCoupon
+                        key={coupon.id}
+                        coupon={coupon}
+                        partnerName={data.partnerName}
+                        senderName={data.senderName}
+                        whatsappNumber={data.whatsapp}
+                      />
                     ))}
                   </div>
                 </div>
