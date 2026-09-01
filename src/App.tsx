@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Heart, User as UserIcon, LogOut } from 'lucide-react';
-import { DedicationData, User } from './types/dedication';
-import { JORGE_SUSANA_DEDICATION } from './data/defaultDedication';
-import { DedicationViewer } from './pages/DedicationViewer';
+import { User, DedicationData } from './types/dedication';
+import { getDedicationBySlugApi, saveDedicationApi } from './services/api';
+import { LandingPage } from './pages/LandingPage';
+import { Dashboard } from './pages/Dashboard';
 import { Builder } from './pages/Builder';
+import { DedicationViewer } from './pages/DedicationViewer';
 import { AuthModal } from './components/AuthModal';
-import { getDedicationBySlugApi } from './services/api';
+
+type View = 'landing' | 'dashboard' | 'builder' | 'viewer';
 
 export default function App() {
-  const [view, setView] = useState<'home' | 'builder' | 'custom'>('home');
-  const [currentDedication, setCurrentDedication] = useState<DedicationData>(JORGE_SUSANA_DEDICATION);
+  const [view, setView] = useState<View>('landing');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [currentDedication, setCurrentDedication] = useState<DedicationData | null>(null);
 
-  // Load user session from localStorage
+  // Restore session from localStorage
   useEffect(() => {
     const savedUser = localStorage.getItem('vibelove_session');
     if (savedUser) {
@@ -23,115 +25,136 @@ export default function App() {
     }
   }, []);
 
-  // Hash-based routing check (#/crear or #/d/:slug)
+  // Hash-based routing
   useEffect(() => {
     const handleHashChange = async () => {
       const hash = window.location.hash;
-      if (hash.startsWith('#/crear')) {
-        setView('builder');
+
+      if (hash.startsWith('#/dashboard')) {
+        if (currentUser) {
+          setView('dashboard');
+        } else {
+          setIsAuthOpen(true);
+        }
+      } else if (hash.startsWith('#/crear')) {
+        if (currentUser) {
+          setView('builder');
+        } else {
+          setIsAuthOpen(true);
+        }
       } else if (hash.startsWith('#/d/')) {
         const slug = hash.replace('#/d/', '');
         const found = await getDedicationBySlugApi(slug);
         if (found) {
           setCurrentDedication(found);
-          setView('custom');
+          setView('viewer');
         } else {
-          setCurrentDedication(JORGE_SUSANA_DEDICATION);
-          setView('home');
+          setView('landing');
         }
       } else {
-        setView('home');
+        // Root path: show landing if not logged in, dashboard if logged in
+        if (currentUser) {
+          setView('dashboard');
+        } else {
+          setView('landing');
+        }
       }
     };
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [currentUser]);
 
   const handleAuthSuccess = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('vibelove_session', JSON.stringify(user));
+    setIsAuthOpen(false);
+    window.location.hash = '#/dashboard';
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('vibelove_session');
+    window.location.hash = '';
+    setView('landing');
   };
 
-  const handleSaveDedication = (newDedication: DedicationData) => {
+  const handleGetStarted = () => {
+    if (currentUser) {
+      window.location.hash = '#/dashboard';
+    } else {
+      setIsAuthOpen(true);
+    }
+  };
+
+  const handleSaveDedication = async (newDedication: DedicationData) => {
+    // Attach user email to dedication
+    if (currentUser) {
+      newDedication.userEmail = currentUser.email;
+    }
+    await saveDedicationApi(newDedication);
     setCurrentDedication(newDedication);
     window.location.hash = `#/d/${newDedication.slug}`;
-    setView('custom');
+    setView('viewer');
   };
 
-  if (view === 'builder') {
+  // ─── RENDER VIEWS ───
+
+  if (view === 'builder' && currentUser) {
     return (
-      <Builder
-        onSave={handleSaveDedication}
-        onCancel={() => {
-          window.location.hash = '';
-          setView('home');
+      <>
+        <Builder
+          onSave={handleSaveDedication}
+          onCancel={() => {
+            window.location.hash = '#/dashboard';
+            setView('dashboard');
+          }}
+        />
+      </>
+    );
+  }
+
+  if (view === 'dashboard' && currentUser) {
+    return (
+      <>
+        <Dashboard
+          user={currentUser}
+          onLogout={handleLogout}
+          onCreateNew={() => {
+            window.location.hash = '#/crear';
+            setView('builder');
+          }}
+          onViewDedication={(slug) => {
+            window.location.hash = `#/d/${slug}`;
+          }}
+        />
+        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onSuccess={handleAuthSuccess} />
+      </>
+    );
+  }
+
+  if (view === 'viewer' && currentDedication) {
+    return (
+      <DedicationViewer
+        data={currentDedication}
+        onBackToHome={() => {
+          if (currentUser) {
+            window.location.hash = '#/dashboard';
+          } else {
+            window.location.hash = '';
+            setView('landing');
+          }
         }}
       />
     );
   }
 
+  // Default: Landing Page
   return (
-    <div className="relative">
-      {/* Top User Bar (Login / Profile) */}
-      <div className="absolute top-6 right-6 z-40 flex items-center gap-2">
-        {currentUser ? (
-          <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-romantic-accent border border-romantic-text/10 shadow-sm">
-            <UserIcon size={14} />
-            <span>Hola, {currentUser.name}</span>
-            <button
-              onClick={handleLogout}
-              className="ml-1 p-1 hover:text-red-600 transition-colors cursor-pointer"
-              title="Cerrar Sesión"
-            >
-              <LogOut size={13} />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsAuthOpen(true)}
-            className="flex items-center gap-1.5 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-semibold text-romantic-accent border border-romantic-text/10 shadow-sm hover:bg-white transition-colors cursor-pointer"
-          >
-            <UserIcon size={14} /> Ingresar / Registrarse
-          </button>
-        )}
-      </div>
-
-      {/* Floating CTA button for Visitors to create their own dedication */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => {
-            window.location.hash = '#/crear';
-            setView('builder');
-          }}
-          className="bg-romantic-accent hover:bg-romantic-accent-hover text-white px-5 py-3 rounded-full font-bold shadow-2xl flex items-center gap-2 text-xs sm:text-sm border-2 border-white/80 transition-transform hover:scale-105 cursor-pointer"
-        >
-          <Sparkles size={16} /> Crear mi Dedicatoria
-        </button>
-      </div>
-
-      {/* Render Dedication Viewer */}
-      <DedicationViewer
-        data={currentDedication}
-        onBackToHome={view === 'custom' ? () => {
-          window.location.hash = '';
-          setCurrentDedication(JORGE_SUSANA_DEDICATION);
-          setView('home');
-        } : undefined}
-      />
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onSuccess={handleAuthSuccess}
-      />
-    </div>
+    <>
+      <LandingPage onGetStarted={handleGetStarted} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onSuccess={handleAuthSuccess} />
+    </>
   );
 }

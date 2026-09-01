@@ -3,7 +3,7 @@ import { DedicationData, User } from '../types/dedication';
 // Si el usuario configura su URL de Apps Script la usaremos, si no, usa el modo LocalStorage sin romper nada
 const APPS_SCRIPT_URL = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || '';
 
-export async function registerApi(email: string, password: string, name: string): Promise<User> {
+export async function registerApi(email: string, password: string, name: string, lastName: string): Promise<User> {
   if (APPS_SCRIPT_URL) {
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
@@ -11,7 +11,7 @@ export async function registerApi(email: string, password: string, name: string)
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'register',
-          data: { email, password, name }
+          data: { email, password, name, lastName }
         })
       });
       const result = await res.json();
@@ -30,7 +30,7 @@ export async function registerApi(email: string, password: string, name: string)
     throw new Error('El correo electrónico ya está registrado.');
   }
 
-  const newUser: User = { id: `usr_${Date.now()}`, email, name };
+  const newUser: User = { id: `usr_${Date.now()}`, email, name, lastName };
   users.push(newUser);
   localStorage.setItem('vibelove_users', JSON.stringify(users));
   localStorage.setItem(`pass_${email.toLowerCase()}`, password);
@@ -66,7 +66,7 @@ export async function loginApi(email: string, password: string): Promise<User> {
   const users: User[] = JSON.parse(usersJson);
   const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-  return found || { id: `usr_${Date.now()}`, email, name: email.split('@')[0] };
+  return found || { id: `usr_${Date.now()}`, email, name: email.split('@')[0], lastName: '' };
 }
 
 export async function saveDedicationApi(dedication: DedicationData): Promise<string> {
@@ -115,4 +115,39 @@ export async function getDedicationBySlugApi(slug: string): Promise<DedicationDa
   }
 
   return null;
+}
+
+export async function getUserDedicationsApi(email: string): Promise<DedicationData[]> {
+  // Always get locally first
+  const localList: DedicationData[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('dedication_')) {
+      try {
+        const item = JSON.parse(localStorage.getItem(key) || '');
+        if (item.userEmail?.toLowerCase() === email.toLowerCase()) {
+          localList.push(item);
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Try fetching from Apps Script and merge/overwrite
+  if (APPS_SCRIPT_URL) {
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?email=${encodeURIComponent(email)}`);
+      const result = await res.json();
+      if (result.success && result.dedications) {
+        // Update local storage with fresh data from server
+        result.dedications.forEach((ded: DedicationData) => {
+          localStorage.setItem(`dedication_${ded.slug}`, JSON.stringify(ded));
+        });
+        return result.dedications;
+      }
+    } catch (err) {
+      console.warn('Error fetching user dedications from Apps Script:', err);
+    }
+  }
+
+  return localList;
 }

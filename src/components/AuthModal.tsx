@@ -15,6 +15,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,12 +33,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setLoading(true);
     try {
       if (mode === 'register') {
-        if (!name) {
-          setError('Por favor ingresa tu nombre.');
+        if (!name || !lastName) {
+          setError('Por favor ingresa tu nombre y apellido.');
           setLoading(false);
           return;
         }
-        const newUser = await registerApi(email, password, name);
+        const newUser = await registerApi(email, password, name, lastName);
         onSuccess(newUser);
       } else {
         const loggedUser = await loginApi(email, password);
@@ -57,7 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md bg-romantic-card rounded-2xl p-6 sm:p-8 shadow-2xl border border-[#F2E8D5] relative"
+        className="w-full max-w-md bg-romantic-card rounded-2xl p-6 sm:p-8 shadow-2xl border border-[#F2E8D5] relative overflow-y-auto max-h-[90vh]"
       >
         <button
           onClick={onClose}
@@ -88,17 +89,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Nombre Completo</label>
-              <div className="relative">
-                <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Tu nombre"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
-                />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Nombre</label>
+                <div className="relative">
+                  <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Tu nombre"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-romantic-text/80">Apellido</label>
+                <div className="relative">
+                  <UserIcon size={16} className="absolute left-3 top-3.5 text-romantic-text/40" />
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Tu apellido"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-romantic-text/20 bg-white text-sm focus:outline-none focus:border-romantic-accent"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -151,6 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             <p className="text-romantic-text/70">
               ¿Aún no tienes cuenta?{' '}
               <button
+                type="button"
                 onClick={() => setMode('register')}
                 className="font-bold text-romantic-accent hover:underline cursor-pointer ml-1"
               >
@@ -161,6 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             <p className="text-romantic-text/70">
               ¿Ya tienes cuenta?{' '}
               <button
+                type="button"
                 onClick={() => setMode('login')}
                 className="font-bold text-romantic-accent hover:underline cursor-pointer ml-1"
               >
