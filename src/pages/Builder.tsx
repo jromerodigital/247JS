@@ -6,6 +6,7 @@ import { PRELOADED_AUDIO_TRACKS } from '../data/audioTracks';
 import { enhanceRomanticLetter } from '../services/gemini';
 import { cropAndCompressImage } from '../utils/imageCropper';
 import { saveDedicationApi } from '../services/api';
+import { Logo } from '../components/Logo';
 
 interface BuilderProps {
   initialData?: DedicationData;
@@ -326,8 +327,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialData, onSave, onCancel 
             <ArrowLeft size={16} /> Volver al Panel
           </button>
           <div className="flex items-center gap-2">
-            <Heart size={16} className="text-romantic-accent" fill="currentColor" />
-            <span className="font-serif italic font-bold text-romantic-accent text-sm">Diseñando mi Detalle</span>
+            <Logo variant="horizontal" theme="accent" className="scale-75 origin-center" />
           </div>
           <span className="text-xs font-bold text-romantic-accent bg-romantic-accent/10 px-3 py-1 rounded-full">
             Paso {step} de 6

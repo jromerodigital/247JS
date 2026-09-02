@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Heart, Mail, Music, Camera, Gift, QrCode, Sparkles, ArrowRight, Star, Check } from 'lucide-react';
+import { Logo } from '../components/Logo';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -10,8 +11,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
   return (
     <div className="min-h-screen bg-romantic-bg text-romantic-text font-sans overflow-x-hidden">
 
+      {/* ─── HEADER NAVBAR ─── */}
+      <header className="fixed top-0 left-0 w-full bg-romantic-bg/80 backdrop-blur-md z-50 border-b border-romantic-accent/10">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Logo variant="horizontal" theme="dark" className="scale-75 origin-left" />
+          <button 
+            onClick={onGetStarted}
+            className="text-xs font-bold bg-romantic-accent text-white px-4 py-2 rounded-full hover:bg-romantic-accent-hover transition-colors shadow-sm"
+          >
+            Iniciar Sesión
+          </button>
+        </div>
+      </header>
+
       {/* ─── HERO SECTION ─── */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 pt-16 pb-20 text-center overflow-hidden">
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 pt-28 pb-20 text-center overflow-hidden">
         {/* Decorative blurred shapes */}
         <div className="absolute top-20 -left-20 w-72 h-72 bg-romantic-accent/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-10 -right-20 w-96 h-96 bg-romantic-accent/5 rounded-full blur-3xl pointer-events-none" />
@@ -229,11 +243,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
 
       {/* ─── FOOTER ─── */}
       <footer className="py-10 px-4 border-t border-romantic-text/10 text-center">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <Heart size={16} className="text-romantic-accent" fill="currentColor" />
-          <span className="font-serif italic font-bold text-romantic-accent">LinkLove</span>
+        <div className="flex justify-center mb-4">
+          <Logo variant="full" theme="accent" showTagline={true} className="scale-[0.8]" />
         </div>
-        <p className="text-[11px] text-romantic-text/40 max-w-sm mx-auto">
+        <p className="text-[11px] text-romantic-text/40 max-w-sm mx-auto mt-2">
           Regalos digitales que enamoran. Hecho con amor para quienes quieren sorprender a su persona favorita.
         </p>
         <p className="text-[10px] text-romantic-text/30 mt-4">

@@ -6,6 +6,7 @@ import { TimeCounter } from '../components/TimeCounter';
 import { PhotoGallery } from '../components/PhotoGallery';
 import { ScratchCoupon } from '../components/ScratchCoupon';
 import { PrintableCardModal } from '../components/PrintableCardModal';
+import { Logo } from '../components/Logo';
 import { DedicationData } from '../types/dedication';
 
 interface DedicationViewerProps {
@@ -299,7 +300,8 @@ export const DedicationViewer: React.FC<DedicationViewerProps> = ({ data, onBack
         </AnimatePresence>
 
         {/* Footer Viral Growth Loop Link */}
-        <footer className="mt-24 text-center border-t border-romantic-text/10 pt-8 pb-4 w-full">
+        <footer className="mt-24 text-center border-t border-romantic-text/10 pt-8 pb-4 w-full flex flex-col items-center">
+          <Logo variant="horizontal" theme="dark" className="scale-[0.6] opacity-60 grayscale mb-2 hover:grayscale-0 hover:opacity-100 transition-all" />
           <a
             href="#/crear"
             className="inline-flex items-center gap-1.5 text-xs text-romantic-text/60 hover:text-romantic-accent transition-colors font-medium cursor-pointer"

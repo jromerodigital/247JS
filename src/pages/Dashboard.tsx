@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Heart, Plus, ExternalLink, Printer, LogOut, Copy, Check, Sparkles, HelpCircle, Edit3, Clock } from 'lucide-react';
 import { DedicationData, User } from '../types/dedication';
 import { getUserDedicationsApi } from '../services/api';
+import { Logo } from '../components/Logo';
 import { PrintableCardModal } from '../components/PrintableCardModal';
 
 interface DashboardProps {
@@ -57,12 +58,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onCreateNe
       <header className="bg-romantic-card border-b border-romantic-text/10 px-4 sm:px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-romantic-accent/10 rounded-full flex items-center justify-center text-romantic-accent">
-              <Heart size={16} fill="currentColor" />
-            </div>
-            <div>
-              <h1 className="font-serif italic font-bold text-lg text-romantic-accent leading-none">LinkLove</h1>
-              <p className="text-[11px] text-romantic-text/50">Panel de Administración</p>
+            <Logo variant="horizontal" theme="accent" className="scale-[0.85] origin-left" />
+            <div className="border-l border-romantic-accent/20 pl-3 hidden sm:block">
+              <p className="text-[11px] text-romantic-text/50 font-medium">Panel de Administración</p>
             </div>
           </div>
 
