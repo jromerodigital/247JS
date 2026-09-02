@@ -61,7 +61,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onCreateNe
               <Heart size={16} fill="currentColor" />
             </div>
             <div>
-              <h1 className="font-serif italic font-bold text-lg text-romantic-accent leading-none">VibeLove</h1>
+              <h1 className="font-serif italic font-bold text-lg text-romantic-accent leading-none">LinkLove</h1>
               <p className="text-[11px] text-romantic-text/50">Panel de Administración</p>
             </div>
           </div>

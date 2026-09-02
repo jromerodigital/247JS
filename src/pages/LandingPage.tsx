@@ -231,13 +231,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       <footer className="py-10 px-4 border-t border-romantic-text/10 text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
           <Heart size={16} className="text-romantic-accent" fill="currentColor" />
-          <span className="font-serif italic font-bold text-romantic-accent">VibeLove</span>
+          <span className="font-serif italic font-bold text-romantic-accent">LinkLove</span>
         </div>
         <p className="text-[11px] text-romantic-text/40 max-w-sm mx-auto">
           Regalos digitales que enamoran. Hecho con amor para quienes quieren sorprender a su persona favorita.
         </p>
         <p className="text-[10px] text-romantic-text/30 mt-4">
-          © {new Date().getFullYear()} VibeLove. Todos los derechos reservados.
+          © {new Date().getFullYear()} LinkLove. Todos los derechos reservados.
         </p>
       </footer>
     </div>

@@ -18,7 +18,7 @@ export default function App() {
 
   // Restore session from localStorage
   useEffect(() => {
-    const savedUser = localStorage.getItem('vibelove_session');
+    const savedUser = localStorage.getItem('linklove_session');
     if (savedUser) {
       try {
         setCurrentUser(JSON.parse(savedUser));
@@ -68,14 +68,14 @@ export default function App() {
 
   const handleAuthSuccess = (user: User) => {
     setCurrentUser(user);
-    localStorage.setItem('vibelove_session', JSON.stringify(user));
+    localStorage.setItem('linklove_session', JSON.stringify(user));
     setIsAuthOpen(false);
     window.location.hash = '#/dashboard';
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('vibelove_session');
+    localStorage.removeItem('linklove_session');
     window.location.hash = '';
     setView('landing');
   };

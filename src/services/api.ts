@@ -25,7 +25,7 @@ export async function registerApi(email: string, password: string, name: string,
   }
 
   // Fallback Local Storage Mode
-  const usersJson = localStorage.getItem('vibelove_users') || '[]';
+  const usersJson = localStorage.getItem('linklove_users') || '[]';
   const users: User[] = JSON.parse(usersJson);
   
   if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -34,7 +34,7 @@ export async function registerApi(email: string, password: string, name: string,
 
   const newUser: User = { id: `usr_${Date.now()}`, email, name, lastName, whatsapp };
   users.push(newUser);
-  localStorage.setItem('vibelove_users', JSON.stringify(users));
+  localStorage.setItem('linklove_users', JSON.stringify(users));
   localStorage.setItem(`pass_${email.toLowerCase()}`, password);
   return newUser;
 }
@@ -66,7 +66,7 @@ export async function loginApi(email: string, password: string): Promise<User> {
     throw new Error('Correo o contraseña incorrectos.');
   }
 
-  const usersJson = localStorage.getItem('vibelove_users') || '[]';
+  const usersJson = localStorage.getItem('linklove_users') || '[]';
   const users: User[] = JSON.parse(usersJson);
   const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 

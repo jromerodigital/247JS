@@ -1,12 +1,12 @@
 /**
  * ============================================================
- * VIBELOVE - BACKEND EN GOOGLE SHEETS (Apps Script)
+ * LINKLOVE - BACKEND EN GOOGLE SHEETS (Apps Script)
  * ============================================================
  * 
  * PASOS PARA CONFIGURAR:
  * 
  * 1. Abre https://sheets.google.com y crea una hoja nueva
- *    (ponle de nombre "VibeLove Backend" o el que prefieras).
+ *    (ponle de nombre "LinkLove Backend" o el que prefieras).
  * 
  * 2. En el menú superior ve a: Extensiones → Apps Script
  * 
@@ -167,7 +167,7 @@ function doGet(e) {
   }
 
   return ContentService
-    .createTextOutput(JSON.stringify({ success: true, message: 'Servidor VibeLove Apps Script activo.' }))
+    .createTextOutput(JSON.stringify({ success: true, message: 'Servidor LinkLove Apps Script activo.' }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
