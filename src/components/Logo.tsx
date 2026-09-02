@@ -63,18 +63,22 @@ export const Logo: React.FC<LogoProps> = ({
     </svg>
   );
 
-  // SVG Logo Mark (L + Heart)
+  // Use the exact icon provided by the user via a CSS mask
   const LogoMark = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor" style={{ color }}>
-      <text x="25" y="80" fontFamily="'Playfair Display', serif" fontSize="75" fill="currentColor">L</text>
-      <path 
-        d="M 52 45 C 52 32, 78 32, 78 52 C 78 68, 55 82, 55 82 C 55 82, 45 75, 38 65"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-      />
-    </svg>
+    <div 
+      className="w-full h-full"
+      style={{
+        backgroundColor: color,
+        WebkitMaskImage: 'url(/logo-icon.png)',
+        WebkitMaskSize: 'contain',
+        WebkitMaskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskImage: 'url(/logo-icon.png)',
+        maskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        maskPosition: 'center',
+      }}
+    />
   );
 
   if (variant === 'icon') {
