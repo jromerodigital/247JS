@@ -4,6 +4,8 @@ import { X, Heart, Mail, Lock, User as UserIcon, ArrowRight, Phone } from 'lucid
 import { User } from '../types/dedication';
 import { loginApi, registerApi } from '../services/api';
 
+import { Logo } from './Logo';
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -74,8 +76,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         </button>
 
         <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-romantic-accent/10 rounded-full flex items-center justify-center mx-auto mb-3 text-romantic-accent">
-            <Heart size={24} fill="currentColor" />
+          <div className="w-12 h-12 bg-romantic-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Logo variant="icon" theme="accent" className="w-7 h-7 translate-y-[2px]" />
           </div>
           <h3 className="font-serif italic font-bold text-2xl text-romantic-accent">
             {mode === 'login' ? 'Iniciar Sesión' : 'Crear mi Cuenta'}
